@@ -1,3 +1,16 @@
+// Captura cualquier error no manejado ANTES de que el proceso muera silenciosamente
+process.on('uncaughtException', (err) => {
+  console.error('=== UNCAUGHT EXCEPTION ===');
+  console.error(err.message);
+  console.error(err.stack);
+  process.exit(1);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('=== UNHANDLED REJECTION ===');
+  console.error(reason);
+  process.exit(1);
+});
+
 const config          = require('./config/env');
 const { testConnection, pool } = require('./config/database');
 const logger          = require('./config/logger');

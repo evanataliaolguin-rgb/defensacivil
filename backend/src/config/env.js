@@ -7,7 +7,6 @@ const appEnv = process.env.APP_ENV || 'dev';
 dotenv.config({ path: path.resolve(__dirname, '../../', `.env.${appEnv}`) });
 
 // 2. Luego el .env del raíz del proyecto (Docker u override global)
-//    Las variables ya cargadas NO se sobreescriben (dotenv no sobreescribe por defecto)
 dotenv.config({ path: path.resolve(__dirname, '../../../', `.env.${appEnv}`) });
 
 const required = ['JWT_SECRET', 'JWT_REFRESH_SECRET', 'DB_PASSWORD', 'DB_NAME'];
@@ -20,7 +19,8 @@ for (const key of required) {
 const config = Object.freeze({
   nodeEnv:  process.env.NODE_ENV || 'development',
   appEnv:   appEnv,
-  port:     parseInt(process.env.BACKEND_PORT || '4071', 10),
+  // Railway inyecta PORT automáticamente — tiene prioridad sobre BACKEND_PORT
+  port:     parseInt(process.env.PORT || process.env.BACKEND_PORT || '4071', 10),
   db: {
     host:     process.env.DB_HOST     || 'localhost',
     port:     parseInt(process.env.DB_PORT || '3306', 10),

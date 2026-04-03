@@ -5,7 +5,6 @@ import {
   LayersControl, ScaleControl, ZoomControl,
   useMap,
 } from 'react-leaflet';
-import MarkerClusterGroup from 'react-leaflet-markercluster';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
@@ -14,7 +13,6 @@ import { incidentsApi } from '../api/incidents.api';
 import { geoApi } from '../api/geo.api';
 import useGeoStore from '../store/geoStore';
 import useAuthStore from '../store/authStore';
-import { StatusBadge, PriorityBadge } from '../components/common/Badge';
 import Button from '../components/common/Button';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -112,6 +110,70 @@ function makeInfraIcon(type) {
     iconSize:  [24, 24],
     iconAnchor:[12, 12],
   });
+}
+
+// ─── ClusterLayer — reemplaza react-leaflet-markercluster (incompatible con v4) ─
+
+const STATUS_BADGE = {
+  RECIBIDO:   { bg:'#dbeafe', text:'#1d4ed8', label:'Recibido' },
+  EN_CAMINO:  { bg:'#fef3c7', text:'#d97706', label:'En Camino' },
+  EN_ESCENA:  { bg:'#fee2e2', text:'#dc2626', label:'En Escena' },
+  CONTROLADO: { bg:'#fef9c3', text:'#ca8a04', label:'Controlado' },
+  CERRADO:    { bg:'#dcfce7', text:'#16a34a', label:'Cerrado' },
+  CANCELADO:  { bg:'#f1f5f9', text:'#64748b', label:'Cancelado' },
+};
+const PRIORITY_BADGE = {
+  BAJA:    { bg:'#dcfce7', text:'#16a34a', label:'Baja' },
+  MEDIA:   { bg:'#dbeafe', text:'#1d4ed8', label:'Media' },
+  ALTA:    { bg:'#fef3c7', text:'#d97706', label:'Alta' },
+  CRITICA: { bg:'#fee2e2', text:'#dc2626', label:'Crítica' },
+};
+
+function htmlBadge(bg, text, label) {
+  return `<span style="display:inline-flex;align-items:center;padding:0.125rem 0.625rem;border-radius:9999px;font-size:0.75rem;font-weight:600;background:${bg};color:${text};white-space:nowrap">${label}</span>`;
+}
+
+function ClusterLayer({ points, incidentTypes }) {
+  const map = useMap();
+
+  useEffect(() => {
+    const clusterGroup = L.markerClusterGroup({
+      chunkedLoading: true,
+      maxClusterRadius: 60,
+      showCoverageOnHover: false,
+    });
+
+    points.forEach(p => {
+      const type  = incidentTypes.find(t => t.id === p.incident_type_id);
+      const color = type?.color_hex || p.color_hex || '#FF4500';
+      const icon  = makeIncidentIcon(color, p.priority);
+
+      const sc = STATUS_BADGE[p.status]     || { bg:'#f1f5f9', text:'#64748b', label: p.status };
+      const pc = PRIORITY_BADGE[p.priority] || { bg:'#f1f5f9', text:'#64748b', label: p.priority };
+      const dateStr = format(new Date(p.started_at), 'dd/MM/yy HH:mm', { locale: es });
+
+      const popupHtml = `
+        <div>
+          <div style="font-weight:700;font-size:0.875rem;margin-bottom:0.25rem;color:#1e293b">${p.incident_number}</div>
+          <div style="font-size:0.8125rem;margin-bottom:0.5rem;color:#475569">${p.title}</div>
+          <div style="display:flex;gap:0.375rem;margin-bottom:0.5rem;flex-wrap:wrap">
+            ${htmlBadge(sc.bg, sc.text, sc.label)}
+            ${htmlBadge(pc.bg, pc.text, pc.label)}
+          </div>
+          <div style="font-size:0.75rem;color:#64748b;margin-bottom:0.5rem">${p.type_name} · ${dateStr}</div>
+          <a href="/incidents/${p.uuid}" style="color:#1d4ed8;font-size:0.8125rem;font-weight:500">Ver detalle →</a>
+        </div>`;
+
+      const marker = L.marker([Number(p.latitude), Number(p.longitude)], { icon });
+      marker.bindPopup(popupHtml, { minWidth: 220 });
+      clusterGroup.addLayer(marker);
+    });
+
+    map.addLayer(clusterGroup);
+    return () => { map.removeLayer(clusterGroup); };
+  }, [points, incidentTypes, map]);
+
+  return null;
 }
 
 // ─── MapController ─────────────────────────────────────────────────────────────
@@ -430,43 +492,8 @@ export default function MapView() {
             </BaseLayer>
           </LayersControl>
 
-          {/* Marcadores de incidentes — agrupados para mejor rendimiento */}
-          <MarkerClusterGroup
-            chunkedLoading
-            maxClusterRadius={60}
-            showCoverageOnHover={false}
-          >
-            {points.map(p => {
-              const type  = incidentTypes.find(t => t.id === p.incident_type_id);
-              const color = type?.color_hex || p.color_hex || '#FF4500';
-              return (
-                <Marker
-                  key={p.uuid}
-                  position={[Number(p.latitude), Number(p.longitude)]}
-                  icon={makeIncidentIcon(color, p.priority)}
-                >
-                  <Popup minWidth={220}>
-                    <div>
-                      <div style={{ fontWeight:700, fontSize:'0.875rem', marginBottom:'0.25rem', color:'#1e293b' }}>
-                        {p.incident_number}
-                      </div>
-                      <div style={{ fontSize:'0.8125rem', marginBottom:'0.5rem', color:'#475569' }}>{p.title}</div>
-                      <div style={{ display:'flex', gap:'0.375rem', marginBottom:'0.5rem', flexWrap:'wrap' }}>
-                        <StatusBadge status={p.status} />
-                        <PriorityBadge priority={p.priority} />
-                      </div>
-                      <div style={{ fontSize:'0.75rem', color:'#64748b', marginBottom:'0.5rem' }}>
-                        {p.type_name} · {format(new Date(p.started_at), 'dd/MM/yy HH:mm', { locale:es })}
-                      </div>
-                      <a href={`/incidents/${p.uuid}`} style={{ color:'#1d4ed8', fontSize:'0.8125rem', fontWeight:500 }}>
-                        Ver detalle →
-                      </a>
-                    </div>
-                  </Popup>
-                </Marker>
-              );
-            })}
-          </MarkerClusterGroup>
+          {/* Marcadores de incidentes — agrupados con leaflet.markercluster nativo */}
+          <ClusterLayer points={points} incidentTypes={incidentTypes} />
 
           {/* Comisarías */}
           {infraLayers.showPolice && stations

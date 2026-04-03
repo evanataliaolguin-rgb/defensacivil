@@ -1,4 +1,5 @@
-// Captura cualquier error no manejado ANTES de que el proceso muera silenciosamente
+console.log('=== server.js iniciando ===');
+
 process.on('uncaughtException', (err) => {
   console.error('=== UNCAUGHT EXCEPTION ===');
   console.error(err.message);
@@ -7,17 +8,33 @@ process.on('uncaughtException', (err) => {
 });
 process.on('unhandledRejection', (reason) => {
   console.error('=== UNHANDLED REJECTION ===');
-  console.error(reason);
+  console.error(String(reason));
   process.exit(1);
 });
 
-const config          = require('./config/env');
-const { testConnection, pool } = require('./config/database');
-const logger          = require('./config/logger');
-const app             = require('./app');
+console.log('=== cargando env ===');
+console.log('Variables disponibles:', {
+  NODE_ENV: process.env.NODE_ENV,
+  APP_ENV: process.env.APP_ENV,
+  PORT: process.env.PORT,
+  DB_HOST: process.env.DB_HOST,
+  DB_NAME: process.env.DB_NAME,
+  DB_USER: process.env.DB_USER,
+  JWT_SECRET: process.env.JWT_SECRET ? 'OK' : 'FALTA',
+  JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET ? 'OK' : 'FALTA',
+  DB_PASSWORD: process.env.DB_PASSWORD ? 'OK' : 'FALTA',
+});
 
-// Verifica si la base tiene datos geográficos e infraestructura.
-// Si está vacía, lanza el importador en segundo plano sin bloquear el arranque.
+const config = require('./config/env');
+console.log('=== env cargado, puerto:', config.port, '===');
+
+const { testConnection, pool } = require('./config/database');
+console.log('=== database cargado ===');
+
+const logger = require('./config/logger');
+const app    = require('./app');
+console.log('=== app cargada ===');
+
 async function checkAndImportData() {
   const { query } = require('./config/database');
   try {
@@ -37,7 +54,6 @@ async function checkAndImportData() {
     if (!necesitaGeo  && necesitaInfra)  args.push('--solo-infra');
 
     logger.info('Base de datos sin datos iniciales — iniciando importación en segundo plano...');
-    logger.info('(El servidor ya está disponible. La importación puede tardar varios minutos.)');
 
     const { spawn } = require('child_process');
     const path = require('path');
@@ -51,21 +67,18 @@ async function checkAndImportData() {
     child.stdout.on('data', d => process.stdout.write(d));
     child.stderr.on('data', d => process.stderr.write(d));
     child.on('close', code => {
-      if (code === 0) logger.info('Importación de datos completada exitosamente');
-      else logger.warn(`Importación finalizada con código ${code} — algunos datos pueden estar incompletos`);
+      if (code === 0) logger.info('Importación completada');
+      else logger.warn(`Importación finalizada con código ${code}`);
     });
     child.on('error', err => logger.error('Error al iniciar importador', { error: err.message }));
 
-    // Matar el proceso si tarda más de 20 minutos (evita zombies)
-    const IMPORT_TIMEOUT_MS = 20 * 60 * 1000;
     const killTimer = setTimeout(() => {
-      logger.warn('Importación superó el tiempo límite (20 min), terminando proceso...');
+      logger.warn('Importación superó 20 min, terminando...');
       child.kill('SIGTERM');
-    }, IMPORT_TIMEOUT_MS);
+    }, 20 * 60 * 1000);
     child.on('close', () => clearTimeout(killTimer));
 
   } catch (err) {
-    // Si la tabla no existe todavía (antes de correr el schema), no hay problema
     if (err.code !== 'ER_NO_SUCH_TABLE') {
       logger.warn('No se pudo verificar datos iniciales', { error: err.message });
     }
@@ -73,26 +86,25 @@ async function checkAndImportData() {
 }
 
 async function start() {
+  console.log('=== intentando conectar a BD ===');
   try {
     await testConnection();
   } catch (err) {
-    logger.error('No se pudo conectar a la base de datos', { error: err.message });
+    console.error('=== ERROR CONEXION BD ===', err.message);
     process.exit(1);
   }
 
   const server = app.listen(config.port, () => {
+    console.log(`=== Servidor en puerto ${config.port} ===`);
     logger.info(`Servidor iniciado en puerto ${config.port} [${config.appEnv.toUpperCase()}]`);
-    logger.info(`Base de datos: ${config.db.name}`);
   });
 
-  // Verificar e importar datos en segundo plano (no bloquea el arranque)
   checkAndImportData();
 
   async function shutdown(signal) {
-    logger.info(`${signal} recibido, cerrando servidor...`);
+    logger.info(`${signal} recibido, cerrando...`);
     server.close(async () => {
       await pool.end();
-      logger.info('Servidor detenido limpiamente');
       process.exit(0);
     });
   }

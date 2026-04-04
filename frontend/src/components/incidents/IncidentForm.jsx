@@ -170,7 +170,7 @@ export default function IncidentForm({ defaultValues, onSubmit, isLoading, showS
       <CoordPicker
         isOpen={pickerOpen}
         onClose={() => setPickerOpen(false)}
-        onSelect={(lat, lng, geoData) => {
+        onSelect={async (lat, lng, geoData, navIds) => {
           setValue('latitude',  lat);
           setValue('longitude', lng);
 
@@ -180,32 +180,27 @@ export default function IncidentForm({ defaultValues, onSubmit, isLoading, showS
             setValue('address', fullAddr);
           }
 
-          // Intentar hacer match de provincia por nombre (Nominatim devuelve state en español)
-          if (geoData?.province && provinces.length) {
-            const pNorm = geoData.province.toLowerCase().replace(/[áàä]/g,'a').replace(/[éèë]/g,'e')
+          // Si el usuario navegó usando los selectores del picker, usar esos IDs directamente
+          if (navIds?.province_id) {
+            setValue('province_id', String(navIds.province_id));
+            await fetchPartidos(navIds.province_id);
+            if (navIds?.partido_id) {
+              setValue('partido_id', String(navIds.partido_id));
+              await fetchLocalities(navIds.partido_id);
+              if (navIds?.locality_id) {
+                setValue('locality_id', String(navIds.locality_id));
+              }
+            }
+          } else if (geoData?.province && provinces.length) {
+            // Fallback: match por nombre de Nominatim
+            const norm = s => s.toLowerCase()
+              .replace(/[áàä]/g,'a').replace(/[éèë]/g,'e')
               .replace(/[íìï]/g,'i').replace(/[óòö]/g,'o').replace(/[úùü]/g,'u');
             const matched = provinces.find(p => {
-              const n = p.name.toLowerCase().replace(/[áàä]/g,'a').replace(/[éèë]/g,'e')
-                .replace(/[íìï]/g,'i').replace(/[óòö]/g,'o').replace(/[úùü]/g,'u');
-              return pNorm.includes(n) || n.includes(pNorm);
+              const pn = norm(p.name), gn = norm(geoData.province);
+              return pn.includes(gn) || gn.includes(pn);
             });
-            if (matched) {
-              setValue('province_id', String(matched.id));
-              // Cargar partidos de esa provincia para intentar hacer match de partido
-              fetchPartidos(matched.id).then?.(() => {
-                if (geoData.partido) {
-                  const pList = partidos[matched.id] || [];
-                  const paNorm = geoData.partido.toLowerCase().replace(/[áàä]/g,'a').replace(/[éèë]/g,'e')
-                    .replace(/[íìï]/g,'i').replace(/[óòö]/g,'o').replace(/[úùü]/g,'u');
-                  const matchedPa = pList.find(pa => {
-                    const n = pa.name.toLowerCase().replace(/[áàä]/g,'a').replace(/[éèë]/g,'e')
-                      .replace(/[íìï]/g,'i').replace(/[óòö]/g,'o').replace(/[úùü]/g,'u');
-                    return paNorm.includes(n) || n.includes(paNorm);
-                  });
-                  if (matchedPa) setValue('partido_id', String(matchedPa.id));
-                }
-              });
-            }
+            if (matched) setValue('province_id', String(matched.id));
           }
 
           setPickerOpen(false);

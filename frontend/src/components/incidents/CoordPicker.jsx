@@ -160,7 +160,11 @@ export default function CoordPicker({ isOpen, onClose, onSelect, initialLat, ini
   };
 
   const handleConfirm = () => {
-    if (coords) onSelect(coords.lat, coords.lng, geoData);
+    if (coords) onSelect(coords.lat, coords.lng, geoData, {
+      province_id:  navProv     || null,
+      partido_id:   navPartido  || null,
+      locality_id:  navLocality || null,
+    });
   };
 
   const currentPartidos   = partidos[navProv]    || [];

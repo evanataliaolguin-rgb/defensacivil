@@ -15,7 +15,7 @@ const SIZES = {
 export default function Button({
   children, variant = 'primary', size = 'md',
   onClick, type = 'button', disabled = false, isLoading = false,
-  style = {},
+  style = {}, form,
 }) {
   const v = VARIANTS[variant] || VARIANTS.primary;
   const s = SIZES[size] || SIZES.md;
@@ -23,6 +23,7 @@ export default function Button({
   return (
     <button
       type={type}
+      form={form}
       onClick={onClick}
       disabled={disabled || isLoading}
       style={{

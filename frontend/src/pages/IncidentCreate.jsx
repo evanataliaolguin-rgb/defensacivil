@@ -31,7 +31,13 @@ export default function IncidentCreate() {
       const { data: incident } = await incidentsApi.create(data);
       navigate(`/incidents/${incident.uuid}`);
     } catch (err) {
-      setError(err.response?.data?.error || 'Error al crear el incidente');
+      const errData = err.response?.data;
+      if (errData?.errors?.length) {
+        const detail = errData.errors.map(e => `${e.field}: ${e.message}`).join(' · ');
+        setError(detail);
+      } else {
+        setError(errData?.error || 'Error al crear el incidente');
+      }
       setLoading(false);
     }
   };

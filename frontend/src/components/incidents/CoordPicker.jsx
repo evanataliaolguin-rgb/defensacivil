@@ -101,6 +101,8 @@ export default function CoordPicker({ isOpen, onClose, onSelect, initialLat, ini
   );
   const [geoData,   setGeoData]   = useState(null);
   const [geocoding, setGeocoding] = useState(false);
+  const [geolocating, setGeolocating] = useState(false);
+  const [geolocateError, setGeolocateError] = useState('');
 
   // Selectores de navegación
   const [navProv,    setNavProv]    = useState('');
@@ -159,6 +161,30 @@ export default function CoordPicker({ isOpen, onClose, onSelect, initialLat, ini
     setGeocoding(false);
   };
 
+  const handleGeolocate = () => {
+    if (!navigator.geolocation) {
+      setGeolocateError('Tu navegador no soporta geolocalización.');
+      return;
+    }
+    setGeolocating(true);
+    setGeolocateError('');
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        setMapTarget({ lat, lng, zoom: 16 });
+        await handleCoord(lat, lng);
+        setGeolocating(false);
+      },
+      (err) => {
+        setGeolocating(false);
+        if (err.code === 1) setGeolocateError('Permiso de ubicación denegado.');
+        else setGeolocateError('No se pudo obtener la ubicación.');
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
   const handleConfirm = () => {
     if (coords) onSelect(coords.lat, coords.lng, geoData, {
       province_id:  navProv     || null,
@@ -210,6 +236,25 @@ export default function CoordPicker({ isOpen, onClose, onSelect, initialLat, ini
             ✕ Limpiar
           </button>
         )}
+      </div>
+
+      {/* Botón geolocalización */}
+      <div style={{ marginBottom:'0.5rem', display:'flex', alignItems:'center', gap:'0.75rem' }}>
+        <button
+          onClick={handleGeolocate}
+          disabled={geolocating}
+          style={{
+            display:'flex', alignItems:'center', gap:'0.4rem',
+            padding:'0.4rem 0.85rem', fontSize:'0.8rem', fontWeight:500,
+            border:'1px solid #3b82f6', borderRadius:'var(--radius)',
+            background: geolocating ? '#eff6ff' : '#3b82f6',
+            color: geolocating ? '#3b82f6' : '#fff',
+            cursor: geolocating ? 'not-allowed' : 'pointer',
+          }}
+        >
+          📍 {geolocating ? 'Obteniendo ubicación...' : 'Mi ubicación actual'}
+        </button>
+        {geolocateError && <span style={{ fontSize:'0.78rem', color:'#dc2626' }}>{geolocateError}</span>}
       </div>
 
       {/* Mapa */}

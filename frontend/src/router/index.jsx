@@ -9,6 +9,7 @@ import IncidentDetail from '../pages/IncidentDetail';
 import IncidentCreate from '../pages/IncidentCreate';
 import IncidentEdit   from '../pages/IncidentEdit';
 import MapView        from '../pages/MapView';
+import InundadosView  from '../pages/InundadosView';
 import UserList       from '../pages/UserList';
 import UserCreate     from '../pages/UserCreate';
 import UserEdit       from '../pages/UserEdit';
@@ -48,6 +49,7 @@ export default function AppRouter() {
         <Route path="incidents/:uuid"   element={<IncidentDetail />} />
         <Route path="incidents/:uuid/edit" element={<ProtectedRoute requiredRoles={['admin','medium']}><IncidentEdit /></ProtectedRoute>} />
         <Route path="mapa"              element={<MapView />} />
+        <Route path="inundados"         element={<InundadosView />} />
         <Route path="usuarios"          element={<ProtectedRoute requiredRoles={['admin']}><UserList /></ProtectedRoute>} />
         <Route path="usuarios/nuevo"    element={<ProtectedRoute requiredRoles={['admin']}><UserCreate /></ProtectedRoute>} />
         <Route path="usuarios/:uuid/editar" element={<ProtectedRoute requiredRoles={['admin']}><UserEdit /></ProtectedRoute>} />

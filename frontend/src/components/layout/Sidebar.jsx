@@ -6,6 +6,7 @@ const LINKS = [
   { to:'/incidents',  label:'Incidentes',        icon:'🚨', roles:['admin','medium','read'] },
   { to:'/incidents/new', label:'Nuevo Incidente',icon:'➕', roles:['admin','medium'] },
   { to:'/mapa',       label:'Mapa',              icon:'🗺️', roles:['admin','medium','read'] },
+  { to:'/inundados',  label:'Inundados',         icon:'🌊', roles:['admin','medium','read'] },
   { to:'/usuarios',   label:'Usuarios',          icon:'👥', roles:['admin'] },
   { to:'/auditoria',  label:'Auditoría',         icon:'📋', roles:['admin'] },
 ];

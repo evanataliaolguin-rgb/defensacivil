@@ -85,4 +85,65 @@ async function getInfrastructure({ type, province_id, partido_id } = {}) {
   );
 }
 
-module.exports = { getProvinces, getPartidos, getLocalities, getPoliceStations, getIncidentTypes, getInfrastructure };
+// ── Infrastructure CRUD ─────────────────────────────────────────────────────
+
+async function createInfrastructure(data) {
+  const { type, name, address, phone, province_id, partido_id, latitude, longitude, beds, level } = data;
+  const result = await query(
+    `INSERT INTO infrastructure_points (type, name, address, phone, province_id, partido_id, latitude, longitude, beds, level, is_active)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`,
+    [type, name, address||null, phone||null, province_id||null, partido_id||null,
+     latitude||null, longitude||null, beds||null, level||null]
+  );
+  return result.insertId;
+}
+
+async function updateInfrastructure(id, data) {
+  const { type, name, address, phone, province_id, partido_id, latitude, longitude, beds, level, is_active } = data;
+  return query(
+    `UPDATE infrastructure_points
+     SET type=?, name=?, address=?, phone=?, province_id=?, partido_id=?,
+         latitude=?, longitude=?, beds=?, level=?, is_active=?
+     WHERE id=?`,
+    [type, name, address||null, phone||null, province_id||null, partido_id||null,
+     latitude||null, longitude||null, beds||null, level||null,
+     is_active !== undefined ? is_active : 1, id]
+  );
+}
+
+async function deleteInfrastructure(id) {
+  return query('UPDATE infrastructure_points SET is_active=0 WHERE id=?', [id]);
+}
+
+// ── Police Stations CRUD ────────────────────────────────────────────────────
+
+async function createPoliceStation(data) {
+  const { name, address, phone, province_id, partido_id, latitude, longitude } = data;
+  const result = await query(
+    `INSERT INTO police_stations (name, address, phone, province_id, partido_id, latitude, longitude, is_active)
+     VALUES (?, ?, ?, ?, ?, ?, ?, 1)`,
+    [name, address||null, phone||null, province_id||null, partido_id||null, latitude||null, longitude||null]
+  );
+  return result.insertId;
+}
+
+async function updatePoliceStation(id, data) {
+  const { name, address, phone, province_id, partido_id, latitude, longitude, is_active } = data;
+  return query(
+    `UPDATE police_stations
+     SET name=?, address=?, phone=?, province_id=?, partido_id=?, latitude=?, longitude=?, is_active=?
+     WHERE id=?`,
+    [name, address||null, phone||null, province_id||null, partido_id||null,
+     latitude||null, longitude||null, is_active !== undefined ? is_active : 1, id]
+  );
+}
+
+async function deletePoliceStation(id) {
+  return query('UPDATE police_stations SET is_active=0 WHERE id=?', [id]);
+}
+
+module.exports = {
+  getProvinces, getPartidos, getLocalities, getPoliceStations, getIncidentTypes, getInfrastructure,
+  createInfrastructure, updateInfrastructure, deleteInfrastructure,
+  createPoliceStation, updatePoliceStation, deletePoliceStation,
+};

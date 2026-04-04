@@ -13,7 +13,8 @@ import InundadosView  from '../pages/InundadosView';
 import UserList       from '../pages/UserList';
 import UserCreate     from '../pages/UserCreate';
 import UserEdit       from '../pages/UserEdit';
-import AuditLog       from '../pages/AuditLog';
+import AuditLog            from '../pages/AuditLog';
+import InfrastructureView  from '../pages/InfrastructureView';
 import NotFound       from '../pages/NotFound';
 import LoadingScreen  from '../components/common/LoadingScreen';
 
@@ -53,6 +54,7 @@ export default function AppRouter() {
         <Route path="usuarios"          element={<ProtectedRoute requiredRoles={['admin']}><UserList /></ProtectedRoute>} />
         <Route path="usuarios/nuevo"    element={<ProtectedRoute requiredRoles={['admin']}><UserCreate /></ProtectedRoute>} />
         <Route path="usuarios/:uuid/editar" element={<ProtectedRoute requiredRoles={['admin']}><UserEdit /></ProtectedRoute>} />
+        <Route path="infraestructura"    element={<InfrastructureView />} />
         <Route path="auditoria"         element={<ProtectedRoute requiredRoles={['admin']}><AuditLog /></ProtectedRoute>} />
       </Route>
 

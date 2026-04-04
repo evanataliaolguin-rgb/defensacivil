@@ -70,4 +70,76 @@ async function getInfrastructure(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { getProvinces, getPartidos, getLocalities, getPoliceStations, getIncidentTypes, getInfrastructure };
+function clearInfraCache() {
+  for (const key of cache.keys()) {
+    if (key.startsWith('infra:') || key.startsWith('police:')) cache.delete(key);
+  }
+}
+
+const INFRA_TYPES = ['HOSPITAL','SALITA','BOMBEROS','SAME','DEFENSA_CIVIL','CUARTEL_GN','OTRO'];
+
+async function createInfrastructure(req, res, next) {
+  try {
+    const { type, name, address, phone, province_id, partido_id, latitude, longitude, beds, level } = req.body;
+    if (!type || !INFRA_TYPES.includes(type)) return res.status(400).json({ error: 'Tipo inválido' });
+    if (!name || !name.trim()) return res.status(400).json({ error: 'Nombre requerido' });
+    const id = await geoModel.createInfrastructure({ type, name: name.trim(), address, phone, province_id, partido_id, latitude, longitude, beds, level });
+    clearInfraCache();
+    res.status(201).json({ id });
+  } catch (err) { next(err); }
+}
+
+async function updateInfrastructure(req, res, next) {
+  try {
+    const { id } = req.params;
+    const { type, name, address, phone, province_id, partido_id, latitude, longitude, beds, level, is_active } = req.body;
+    if (type && !INFRA_TYPES.includes(type)) return res.status(400).json({ error: 'Tipo inválido' });
+    if (!name || !name.trim()) return res.status(400).json({ error: 'Nombre requerido' });
+    await geoModel.updateInfrastructure(id, { type, name: name.trim(), address, phone, province_id, partido_id, latitude, longitude, beds, level, is_active });
+    clearInfraCache();
+    res.json({ ok: true });
+  } catch (err) { next(err); }
+}
+
+async function deleteInfrastructure(req, res, next) {
+  try {
+    await geoModel.deleteInfrastructure(req.params.id);
+    clearInfraCache();
+    res.json({ ok: true });
+  } catch (err) { next(err); }
+}
+
+async function createPoliceStation(req, res, next) {
+  try {
+    const { name, address, phone, province_id, partido_id, latitude, longitude } = req.body;
+    if (!name || !name.trim()) return res.status(400).json({ error: 'Nombre requerido' });
+    const id = await geoModel.createPoliceStation({ name: name.trim(), address, phone, province_id, partido_id, latitude, longitude });
+    clearInfraCache();
+    res.status(201).json({ id });
+  } catch (err) { next(err); }
+}
+
+async function updatePoliceStation(req, res, next) {
+  try {
+    const { id } = req.params;
+    const { name, address, phone, province_id, partido_id, latitude, longitude, is_active } = req.body;
+    if (!name || !name.trim()) return res.status(400).json({ error: 'Nombre requerido' });
+    await geoModel.updatePoliceStation(id, { name: name.trim(), address, phone, province_id, partido_id, latitude, longitude, is_active });
+    clearInfraCache();
+    res.json({ ok: true });
+  } catch (err) { next(err); }
+}
+
+async function deletePoliceStation(req, res, next) {
+  try {
+    await geoModel.deletePoliceStation(req.params.id);
+    clearInfraCache();
+    res.json({ ok: true });
+  } catch (err) { next(err); }
+}
+
+module.exports = {
+  getProvinces, getPartidos, getLocalities, getPoliceStations, getIncidentTypes, getInfrastructure,
+  createInfrastructure, updateInfrastructure, deleteInfrastructure,
+  createPoliceStation, updatePoliceStation, deletePoliceStation,
+};

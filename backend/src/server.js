@@ -85,6 +85,41 @@ async function checkAndImportData() {
   }
 }
 
+async function ensureTables() {
+  const { query } = require('./config/database');
+  // Tablas que pueden faltar si el schema fue aplicado parcialmente
+  const migrations = [
+    `CREATE TABLE IF NOT EXISTS incident_number_sequences (
+       year     SMALLINT UNSIGNED NOT NULL,
+       last_seq INT UNSIGNED      NOT NULL DEFAULT 0,
+       PRIMARY KEY (year)
+     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+    `CREATE TABLE IF NOT EXISTS infrastructure_points (
+       id          INT UNSIGNED NOT NULL AUTO_INCREMENT,
+       type        ENUM('HOSPITAL','SALITA','BOMBEROS','SAME','DEFENSA_CIVIL','CUARTEL_GN','OTRO') NOT NULL DEFAULT 'OTRO',
+       name        VARCHAR(200) NOT NULL,
+       address     VARCHAR(255) NULL,
+       phone       VARCHAR(100) NULL,
+       province_id INT UNSIGNED NULL,
+       partido_id  INT UNSIGNED NULL,
+       latitude    DECIMAL(10,8) NULL,
+       longitude   DECIMAL(11,8) NULL,
+       beds        INT NULL,
+       level       VARCHAR(30) NULL,
+       is_active   TINYINT(1) NOT NULL DEFAULT 1,
+       PRIMARY KEY (id),
+       KEY idx_infra_type (type),
+       KEY idx_infra_province (province_id),
+       KEY idx_infra_coords (latitude, longitude)
+     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+  ];
+  for (const sql of migrations) {
+    try { await query(sql); }
+    catch (err) { logger.warn('Error en migración automática', { error: err.message }); }
+  }
+  logger.info('Verificación de tablas completada');
+}
+
 async function start() {
   console.log('=== intentando conectar a BD ===');
   try {
@@ -93,6 +128,8 @@ async function start() {
     console.error('=== ERROR CONEXION BD ===', err.message);
     process.exit(1);
   }
+
+  await ensureTables();
 
   const server = app.listen(config.port, () => {
     console.log(`=== Servidor en puerto ${config.port} ===`);

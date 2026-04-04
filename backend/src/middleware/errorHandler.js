@@ -12,6 +12,8 @@ function errorHandler(err, req, res, next) {
   });
 
   const response = { error: status === 500 ? 'Error interno del servidor' : err.message };
+  // En producción, exponer el mensaje (no el stack) para facilitar diagnóstico
+  if (status === 500) response.detail = err.message;
   if (config.nodeEnv !== 'production') {
     response.stack = err.stack;
   }

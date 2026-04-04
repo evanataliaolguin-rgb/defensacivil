@@ -38,7 +38,7 @@ export default function IncidentCreate() {
         errData.errors.forEach(e => toast.error(`${e.field}: ${e.message}`));
         setError(errData.errors.map(e => `${e.field}: ${e.message}`).join(' · '));
       } else {
-        const msg = errData?.error || 'Error al crear el incidente';
+        const msg = errData?.detail || errData?.error || 'Error al crear el incidente';
         toast.error(msg);
         setError(msg);
       }

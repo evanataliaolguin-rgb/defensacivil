@@ -94,6 +94,13 @@ async function ensureTables() {
        last_seq INT UNSIGNED      NOT NULL DEFAULT 0,
        PRIMARY KEY (year)
      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+    // Sincronizar la secuencia con el máximo número de incidente existente
+    `INSERT INTO incident_number_sequences (year, last_seq)
+     SELECT YEAR(started_at) AS year, MAX(CAST(SUBSTRING_INDEX(incident_number, '-', -1) AS UNSIGNED)) AS last_seq
+     FROM incidents
+     WHERE incident_number REGEXP '^DC-[0-9]{4}-[0-9]+$'
+     GROUP BY YEAR(started_at)
+     ON DUPLICATE KEY UPDATE last_seq = GREATEST(last_seq, VALUES(last_seq))`,
     `CREATE TABLE IF NOT EXISTS infrastructure_points (
        id          INT UNSIGNED NOT NULL AUTO_INCREMENT,
        type        ENUM('HOSPITAL','SALITA','BOMBEROS','SAME','DEFENSA_CIVIL','CUARTEL_GN','OTRO') NOT NULL DEFAULT 'OTRO',

@@ -43,7 +43,7 @@ export default function IncidentEdit() {
         errData.errors.forEach(e => toast.error(`${e.field}: ${e.message}`));
         setError(errData.errors.map(e => `${e.field}: ${e.message}`).join(' · '));
       } else {
-        const msg = errData?.error || 'Error al actualizar';
+        const msg = errData?.detail || errData?.error || 'Error al actualizar';
         toast.error(msg);
         setError(msg);
       }

@@ -15,7 +15,21 @@ export default function IncidentEdit() {
     incidentsApi.getOne(uuid).then(r => setIncident(r.data)).catch(() => navigate('/incidents'));
   }, [uuid]);
 
-  const onSubmit = async (data) => {
+  const onSubmit = async (rawData) => {
+    const intFields   = ['incident_type_id','incident_subtype_id','province_id','partido_id','locality_id',
+                         'affected_persons_count','injured_count','deceased_count','evacuated_count'];
+    const floatFields = ['latitude','longitude'];
+
+    const data = { ...rawData };
+    intFields.forEach(f => {
+      if (data[f] === '' || data[f] == null) delete data[f];
+      else data[f] = Number(data[f]);
+    });
+    floatFields.forEach(f => {
+      if (data[f] === '' || data[f] == null) delete data[f];
+      else data[f] = parseFloat(data[f]);
+    });
+
     setLoading(true);
     setError(null);
     try {

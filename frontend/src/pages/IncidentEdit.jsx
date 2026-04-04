@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { toast } from 'sonner';
 import { incidentsApi } from '../api/incidents.api';
 import IncidentForm from '../components/incidents/IncidentForm';
 import Button from '../components/common/Button';
@@ -34,10 +35,18 @@ export default function IncidentEdit() {
     setError(null);
     try {
       await incidentsApi.update(uuid, data);
+      toast.success('Incidente actualizado correctamente');
       navigate(`/incidents/${uuid}`);
     } catch (err) {
       const errData = err.response?.data;
-      setError(errData?.errors?.map(e => `${e.field}: ${e.message}`).join(' · ') || errData?.error || 'Error al actualizar');
+      if (errData?.errors?.length) {
+        errData.errors.forEach(e => toast.error(`${e.field}: ${e.message}`));
+        setError(errData.errors.map(e => `${e.field}: ${e.message}`).join(' · '));
+      } else {
+        const msg = errData?.error || 'Error al actualizar';
+        toast.error(msg);
+        setError(msg);
+      }
       setLoading(false);
     }
   };

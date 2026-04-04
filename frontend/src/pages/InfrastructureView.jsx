@@ -7,6 +7,8 @@ import useGeoStore from '../store/geoStore';
 import useAuthStore from '../store/authStore';
 import Button from '../components/common/Button';
 import Modal from '../components/common/Modal';
+import CoordPicker from '../components/incidents/CoordPicker';
+import { toast } from 'sonner';
 
 // ── Iconos por tipo ───────────────────────────────────────────────────────────
 
@@ -121,9 +123,12 @@ function ResourceForm({ initial, onSave, onClose }) {
     };
     try {
       await onSave(data, initial?.id);
+      toast.success(initial ? 'Recurso actualizado' : 'Recurso agregado correctamente');
       onClose();
     } catch (err) {
-      setError(err.response?.data?.error || 'Error al guardar');
+      const msg = err.response?.data?.error || 'Error al guardar';
+      toast.error(msg);
+      setError(msg);
       setSaving(false);
     }
   };
@@ -314,8 +319,13 @@ export default function InfrastructureView() {
 
   const handleDelete = async () => {
     if (!confirmDelete) return;
-    if (confirmDelete.source === 'police') await geoApi.deletePoliceStation(confirmDelete.id);
-    else                                   await geoApi.deleteInfrastructure(confirmDelete.id);
+    try {
+      if (confirmDelete.source === 'police') await geoApi.deletePoliceStation(confirmDelete.id);
+      else                                   await geoApi.deleteInfrastructure(confirmDelete.id);
+      toast.success(`${confirmDelete.name} eliminado`);
+    } catch {
+      toast.error('Error al eliminar');
+    }
     setConfirmDelete(null);
     await load();
   };

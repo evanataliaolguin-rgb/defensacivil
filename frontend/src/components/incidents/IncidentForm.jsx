@@ -67,7 +67,7 @@ export default function IncidentForm({ defaultValues, onSubmit, isLoading, showS
 
           <div style={{ ...field, gridColumn:'1/-1' }}>
             <label style={label}>Descripción detallada *</label>
-            <textarea rows={4} style={{ ...input, resize:'vertical' }} placeholder="Descripción completa de lo ocurrido..." {...register('description', { required:'Requerido' })} />
+            <textarea rows={4} style={{ ...input, resize:'vertical' }} placeholder="Descripción completa de lo ocurrido..." {...register('description', { required:'Requerido', minLength:{ value:10, message:'Mínimo 10 caracteres' } })} />
             {errors.description && <span style={{ color:'#dc2626', fontSize:'0.75rem' }}>{errors.description.message}</span>}
           </div>
 

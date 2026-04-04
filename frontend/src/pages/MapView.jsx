@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   MapContainer, TileLayer, Marker, Popup,
   LayersControl, ScaleControl, ZoomControl,
-  useMap,
+  useMap, GeoJSON,
 } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -113,7 +113,7 @@ function makeInfraIcon(type) {
   });
 }
 
-// ─── ClusterLayer — reemplaza react-leaflet-markercluster (incompatible con v4) ─
+// ─── ClusterLayer ──────────────────────────────────────────────────────────────
 
 const STATUS_BADGE = {
   RECIBIDO:   { bg:'#dbeafe', text:'#1d4ed8', label:'Recibido' },
@@ -177,14 +177,45 @@ function ClusterLayer({ points, incidentTypes }) {
   return null;
 }
 
-// ─── MapController ─────────────────────────────────────────────────────────────
+// ─── FitBounds — ajusta el mapa al extent de los incidentes ───────────────────
 
-function MapController({ provinceCode, partidoLatLng }) {
+function FitBounds({ points, trigger }) {
   const map = useMap();
-  const prevProvince = useRef(null);
+  const prev = useRef(null);
 
   useEffect(() => {
-    if (partidoLatLng) {
+    if (!points.length || trigger === prev.current) return;
+    prev.current = trigger;
+    const validPts = points.filter(p => p.latitude && p.longitude);
+    if (!validPts.length) return;
+    const bounds = L.latLngBounds(validPts.map(p => [Number(p.latitude), Number(p.longitude)]));
+    if (bounds.isValid()) {
+      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
+    }
+  }, [points, trigger, map]);
+
+  return null;
+}
+
+// ─── MapController ─────────────────────────────────────────────────────────────
+
+function MapController({ provinceCode, partidoLatLng, localityLatLng, localityBoundary }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (localityBoundary) {
+      try {
+        const layer = L.geoJSON(localityBoundary);
+        const bounds = layer.getBounds();
+        if (bounds.isValid()) {
+          map.fitBounds(bounds, { padding: [30, 30] });
+          return;
+        }
+      } catch {/* fall through */}
+    }
+    if (localityLatLng) {
+      map.flyTo([localityLatLng.lat, localityLatLng.lng], 14, { duration: 1.0 });
+    } else if (partidoLatLng) {
       map.flyTo([partidoLatLng.lat, partidoLatLng.lng], 11, { duration: 1.0 });
     } else if (provinceCode && PROVINCE_CENTERS[provinceCode]) {
       const c = PROVINCE_CENTERS[provinceCode];
@@ -192,16 +223,36 @@ function MapController({ provinceCode, partidoLatLng }) {
     } else if (!provinceCode) {
       map.flyTo([-38.4161, -63.6167], 5, { duration: 1.2 });
     }
-  }, [provinceCode, partidoLatLng, map]);
+  }, [provinceCode, partidoLatLng, localityLatLng, localityBoundary, map]);
 
   return null;
 }
 
 const { BaseLayer } = LayersControl;
-
-// ─── Capas de infraestructura activas ─────────────────────────────────────────
-
 const INFRA_TYPES = Object.keys(INFRA_CONFIG);
+
+// ─── Estilos responsive ────────────────────────────────────────────────────────
+
+const RESPONSIVE_CSS = `
+  .map-page { display:flex; flex-direction:column; min-height:calc(100vh - 56px - 3rem); gap:0.75rem; }
+  .map-container-wrap { flex:1; min-height:480px; border-radius:var(--radius); overflow:hidden; box-shadow:var(--shadow); }
+  .map-filters { background:#fff; border-radius:var(--radius); box-shadow:var(--shadow); padding:0.75rem 1rem; display:flex; flex-wrap:wrap; gap:0.6rem; align-items:center; }
+  .map-infra { background:#fff; border-radius:var(--radius); box-shadow:var(--shadow); padding:0.6rem 1rem; display:flex; flex-wrap:wrap; gap:0.75rem; align-items:center; }
+  .map-legend { display:flex; gap:0.75rem; flex-wrap:wrap; font-size:0.75rem; color:#64748b; align-items:center; }
+  .map-header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.5rem; }
+  .map-sel { padding:0.4rem 0.6rem; border:1px solid #d1d5db; border-radius:var(--radius); font-size:0.8rem; background:#fff; min-width:120px; max-width:100%; }
+  .map-sel:disabled { opacity:0.5; }
+  .map-checkbox-label { display:flex; align-items:center; gap:0.3rem; font-size:0.75rem; cursor:pointer; white-space:nowrap; }
+  @media (max-width: 768px) {
+    .map-page { min-height:unset; }
+    .map-container-wrap { min-height:55vh; }
+    .map-filters { padding:0.5rem 0.75rem; gap:0.4rem; }
+    .map-infra { padding:0.4rem 0.75rem; gap:0.5rem; }
+    .map-legend { gap:0.5rem; font-size:0.7rem; }
+    .map-sel { min-width:100px; font-size:0.75rem; }
+    .map-legend .map-legend-sizes { display:none; }
+  }
+`;
 
 // ─── Componente principal ──────────────────────────────────────────────────────
 
@@ -213,26 +264,28 @@ export default function MapView() {
   } = useGeoStore();
   const canWrite = useAuthStore(s => s.canWrite());
 
-  const [points,       setPoints]       = useState([]);
-  const [stations,     setStations]     = useState([]);
-  const [loading,      setLoading]      = useState(true);
+  const [points,          setPoints]          = useState([]);
+  const [stations,        setStations]        = useState([]);
+  const [loading,         setLoading]         = useState(true);
+  const [localityBoundary, setLocalityBoundary] = useState(null);
+  const [fitTrigger,      setFitTrigger]      = useState(0);
+
   const [filters, setFilters] = useState({
     province_id: '', province_code: '',
     partido_id: '', partido_lat: null, partido_lng: null,
-    locality_id: '',
+    locality_id: '', locality_lat: null, locality_lng: null,
     incident_type_id: '', status: '',
   });
 
-  // Qué capas de infraestructura mostrar
   const [infraLayers, setInfraLayers] = useState({
-    showPolice:        true,
-    HOSPITAL:          true,
-    SALITA:            true,
-    BOMBEROS:          true,
-    SAME:              true,
-    DEFENSA_CIVIL:     true,
-    CUARTEL_GN:        false,
-    OTRO:              false,
+    showPolice:    true,
+    HOSPITAL:      true,
+    SALITA:        true,
+    BOMBEROS:      true,
+    SAME:          true,
+    DEFENSA_CIVIL: true,
+    CUARTEL_GN:    false,
+    OTRO:          false,
   });
 
   const STATUSES = [
@@ -249,7 +302,6 @@ export default function MapView() {
     fetchIncidentTypes();
   }, []);
 
-  // Cuando cambia provincia, cargar sus partidos y luego infraestructura
   useEffect(() => {
     if (filters.province_id) {
       fetchPartidos(filters.province_id);
@@ -259,7 +311,6 @@ export default function MapView() {
     }
   }, [filters.province_id]);
 
-  // Cuando cambia partido, cargar localidades y filtrar infraestructura
   useEffect(() => {
     if (filters.partido_id) {
       fetchLocalities(filters.partido_id);
@@ -267,8 +318,33 @@ export default function MapView() {
     } else if (filters.province_id) {
       fetchInfrastructure({ province_id: filters.province_id });
     }
-    setFilters(f => ({ ...f, locality_id: '' }));
+    setFilters(f => ({ ...f, locality_id: '', locality_lat: null, locality_lng: null }));
+    setLocalityBoundary(null);
   }, [filters.partido_id]);
+
+  // Buscar límite de localidad en Nominatim cuando se selecciona una
+  useEffect(() => {
+    if (!filters.locality_id) {
+      setLocalityBoundary(null);
+      return;
+    }
+    const localityList = localities[filters.partido_id] || [];
+    const locality = localityList.find(l => String(l.id) === String(filters.locality_id));
+    if (!locality) return;
+
+    const provinceName = provinces.find(p => String(p.id) === String(filters.province_id))?.name || '';
+    const q = encodeURIComponent(`${locality.name}, ${provinceName}, Argentina`);
+    fetch(`https://nominatim.openstreetmap.org/search?q=${q}&format=geojson&polygon_geojson=1&limit=1&countrycodes=ar`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.features?.[0]?.geometry) {
+          setLocalityBoundary(data.features[0].geometry);
+        } else {
+          setLocalityBoundary(null);
+        }
+      })
+      .catch(() => setLocalityBoundary(null));
+  }, [filters.locality_id]);
 
   // Incidentes y comisarías
   useEffect(() => {
@@ -286,6 +362,10 @@ export default function MapView() {
     ]).then(([pts, sts]) => {
       setPoints(pts.data);
       setStations(sts.data);
+      // Si hay incidentes y no hay filtro geográfico granular, ajustar mapa
+      if (pts.data.length && !filters.locality_id && !filters.partido_id && !filters.province_id) {
+        setFitTrigger(t => t + 1);
+      }
     }).finally(() => setLoading(false));
   }, [filters.province_id, filters.partido_id, filters.locality_id, filters.incident_type_id, filters.status]);
 
@@ -293,7 +373,8 @@ export default function MapView() {
     const opt  = e.target.options[e.target.selectedIndex];
     const id   = e.target.value;
     const code = opt.dataset.code || '';
-    setFilters(f => ({ ...f, province_id: id, province_code: code, partido_id: '', partido_lat: null, partido_lng: null, locality_id: '' }));
+    setFilters(f => ({ ...f, province_id: id, province_code: code, partido_id: '', partido_lat: null, partido_lng: null, locality_id: '', locality_lat: null, locality_lng: null }));
+    setLocalityBoundary(null);
   };
 
   const handlePartidoChange = (e) => {
@@ -304,11 +385,20 @@ export default function MapView() {
     setFilters(f => ({ ...f, partido_id: id, partido_lat: lat, partido_lng: lng }));
   };
 
+  const handleLocalityChange = (e) => {
+    const opt = e.target.options[e.target.selectedIndex];
+    const id  = e.target.value;
+    const lat = parseFloat(opt.dataset.lat) || null;
+    const lng = parseFloat(opt.dataset.lng) || null;
+    setFilters(f => ({ ...f, locality_id: id, locality_lat: lat, locality_lng: lng }));
+  };
+
   const toggleInfraLayer = (key) =>
     setInfraLayers(l => ({ ...l, [key]: !l[key] }));
 
   const clearFilters = () => {
-    setFilters({ province_id:'', province_code:'', partido_id:'', partido_lat:null, partido_lng:null, locality_id:'', incident_type_id:'', status:'' });
+    setFilters({ province_id:'', province_code:'', partido_id:'', partido_lat:null, partido_lng:null, locality_id:'', locality_lat:null, locality_lng:null, incident_type_id:'', status:'' });
+    setLocalityBoundary(null);
     fetchInfrastructure({});
   };
 
@@ -318,242 +408,248 @@ export default function MapView() {
     ? { lat: filters.partido_lat, lng: filters.partido_lng }
     : null;
 
-  const sel = {
-    padding:'0.5rem 0.75rem', border:'1px solid #d1d5db',
-    borderRadius:'var(--radius)', fontSize:'0.8125rem', background:'#fff',
-    minWidth:'140px',
-  };
-
-  const checkboxStyle = {
-    display:'flex', alignItems:'center', gap:'0.35rem',
-    fontSize:'0.775rem', cursor:'pointer', whiteSpace:'nowrap',
-  };
+  const localityLatLng = (filters.locality_lat && filters.locality_lng)
+    ? { lat: filters.locality_lat, lng: filters.locality_lng }
+    : null;
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', height:'calc(100vh - 56px - 3rem)', gap:'0.75rem' }}>
+    <>
+      <style>{RESPONSIVE_CSS}</style>
+      <div className="map-page">
 
-      {/* Header */}
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:'0.75rem' }}>
-        <h1 style={{ fontSize:'1.5rem', fontWeight:700 }}>Mapa de Incidentes</h1>
-        <div style={{ display:'flex', gap:'0.5rem', alignItems:'center' }}>
-          {loading && <span style={{ fontSize:'0.8rem', color:'#94a3b8' }}>⟳ Actualizando...</span>}
-          <span style={{ fontSize:'0.8rem', color:'#64748b', background:'#f1f5f9', padding:'0.25rem 0.75rem', borderRadius:'9999px' }}>
-            {points.length} incidentes
-          </span>
-          {canWrite && <Link to="/incidents/new"><Button size="sm">➕ Nuevo Incidente</Button></Link>}
+        {/* Header */}
+        <div className="map-header">
+          <h1 style={{ fontSize:'1.5rem', fontWeight:700 }}>Mapa de Incidentes</h1>
+          <div style={{ display:'flex', gap:'0.5rem', alignItems:'center' }}>
+            {loading && <span style={{ fontSize:'0.8rem', color:'#94a3b8' }}>⟳ Actualizando...</span>}
+            <span style={{ fontSize:'0.8rem', color:'#64748b', background:'#f1f5f9', padding:'0.25rem 0.75rem', borderRadius:'9999px' }}>
+              {points.length} incidentes
+            </span>
+            {canWrite && <Link to="/incidents/new"><Button size="sm">➕ Nuevo Incidente</Button></Link>}
+          </div>
         </div>
-      </div>
 
-      {/* Filtros principales */}
-      <div style={{
-        background:'#fff', borderRadius:'var(--radius)', boxShadow:'var(--shadow)',
-        padding:'0.75rem 1rem', display:'flex', flexWrap:'wrap', gap:'0.75rem', alignItems:'center',
-      }}>
-        <label style={{ fontSize:'0.8125rem', fontWeight:500, color:'#374151' }}>Provincia:</label>
-        <select style={sel} value={filters.province_id} onChange={handleProvinceChange}>
-          <option value="" data-code="">Toda Argentina</option>
-          {provinces.map(p => (
-            <option key={p.id} value={p.id} data-code={p.code}>{p.name}</option>
+        {/* Filtros principales */}
+        <div className="map-filters">
+          <label style={{ fontSize:'0.8rem', fontWeight:500, color:'#374151' }}>Provincia:</label>
+          <select className="map-sel" value={filters.province_id} onChange={handleProvinceChange}>
+            <option value="" data-code="">Toda Argentina</option>
+            {provinces.map(p => (
+              <option key={p.id} value={p.id} data-code={p.code}>{p.name}</option>
+            ))}
+          </select>
+
+          <label style={{ fontSize:'0.8rem', fontWeight:500, color:'#374151' }}>Partido/Municipio:</label>
+          <select className="map-sel" value={filters.partido_id} onChange={handlePartidoChange} disabled={!filters.province_id}>
+            <option value="" data-lat="" data-lng="">{filters.province_id ? 'Todo el partido' : '— elegir prov. —'}</option>
+            {currentPartidos.map(p => (
+              <option key={p.id} value={p.id} data-lat={p.latitude || ''} data-lng={p.longitude || ''}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+
+          <label style={{ fontSize:'0.8rem', fontWeight:500, color:'#374151' }}>Localidad:</label>
+          <select
+            className="map-sel"
+            value={filters.locality_id}
+            onChange={handleLocalityChange}
+            disabled={!filters.partido_id}
+          >
+            <option value="" data-lat="" data-lng="">{filters.partido_id ? 'Todas' : '— elegir partido —'}</option>
+            {(localities[filters.partido_id] || []).map(l => (
+              <option key={l.id} value={l.id} data-lat={l.latitude || ''} data-lng={l.longitude || ''}>
+                {l.name}{l.postal_code ? ` (${l.postal_code})` : ''}
+              </option>
+            ))}
+          </select>
+
+          <label style={{ fontSize:'0.8rem', fontWeight:500, color:'#374151' }}>Tipo:</label>
+          <select className="map-sel" value={filters.incident_type_id} onChange={e => setFilters(f => ({ ...f, incident_type_id: e.target.value }))}>
+            <option value="">Todos</option>
+            {incidentTypes.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+          </select>
+
+          <label style={{ fontSize:'0.8rem', fontWeight:500, color:'#374151' }}>Estado:</label>
+          <select className="map-sel" value={filters.status} onChange={e => setFilters(f => ({ ...f, status: e.target.value }))}>
+            <option value="">Todos</option>
+            {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+          </select>
+
+          <Button size="sm" variant="secondary" onClick={clearFilters}>Limpiar</Button>
+        </div>
+
+        {/* Capas de infraestructura */}
+        <div className="map-infra">
+          <span style={{ fontSize:'0.75rem', fontWeight:600, color:'#374151' }}>Mostrar:</span>
+
+          <label className="map-checkbox-label">
+            <input type="checkbox" checked={infraLayers.showPolice} onChange={() => toggleInfraLayer('showPolice')} />
+            <span style={{ width:14, height:14, background:'#003087', borderRadius:3, border:'2px solid white', boxShadow:'0 1px 2px rgba(0,0,0,0.3)', display:'inline-block' }} />
+            Comisarías
+          </label>
+
+          {INFRA_TYPES.map(type => {
+            const cfg = INFRA_CONFIG[type];
+            return (
+              <label key={type} className="map-checkbox-label">
+                <input type="checkbox" checked={infraLayers[type]} onChange={() => toggleInfraLayer(type)} />
+                <span style={{
+                  width:16, height:16, background:cfg.bg, borderRadius:4,
+                  border:`2px solid ${cfg.border}`, display:'inline-flex',
+                  alignItems:'center', justifyContent:'center', fontSize:'9px',
+                }}>
+                  {cfg.emoji}
+                </span>
+                {cfg.label}
+              </label>
+            );
+          })}
+        </div>
+
+        {/* Leyenda */}
+        <div className="map-legend">
+          {incidentTypes.map(t => (
+            <span key={t.id} style={{ display:'flex', alignItems:'center', gap:'0.3rem' }}>
+              <span style={{ width:10, height:10, borderRadius:'50%', background:t.color_hex, border:'1px solid rgba(0,0,0,0.2)', display:'inline-block' }} />
+              {t.name}
+            </span>
           ))}
-        </select>
-
-        <label style={{ fontSize:'0.8125rem', fontWeight:500, color:'#374151' }}>Partido/Municipio:</label>
-        <select style={{ ...sel, opacity: filters.province_id ? 1 : 0.5 }} value={filters.partido_id} onChange={handlePartidoChange} disabled={!filters.province_id}>
-          <option value="" data-lat="" data-lng="">{filters.province_id ? 'Todo el partido' : '— elegir prov. primero —'}</option>
-          {currentPartidos.map(p => (
-            <option key={p.id} value={p.id} data-lat={p.latitude || ''} data-lng={p.longitude || ''}>
-              {p.name}
-            </option>
-          ))}
-        </select>
-
-        <label style={{ fontSize:'0.8125rem', fontWeight:500, color:'#374151' }}>Localidad:</label>
-        <select
-          style={{ ...sel, opacity: filters.partido_id ? 1 : 0.5 }}
-          value={filters.locality_id}
-          onChange={e => setFilters(f => ({ ...f, locality_id: e.target.value }))}
-          disabled={!filters.partido_id}
-        >
-          <option value="">{filters.partido_id ? 'Todas' : '— elegir partido primero —'}</option>
-          {(localities[filters.partido_id] || []).map(l => (
-            <option key={l.id} value={l.id}>{l.name}{l.postal_code ? ` (${l.postal_code})` : ''}</option>
-          ))}
-        </select>
-
-        <label style={{ fontSize:'0.8125rem', fontWeight:500, color:'#374151' }}>Tipo:</label>
-        <select style={sel} value={filters.incident_type_id} onChange={e => setFilters(f => ({ ...f, incident_type_id: e.target.value }))}>
-          <option value="">Todos</option>
-          {incidentTypes.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-        </select>
-
-        <label style={{ fontSize:'0.8125rem', fontWeight:500, color:'#374151' }}>Estado:</label>
-        <select style={sel} value={filters.status} onChange={e => setFilters(f => ({ ...f, status: e.target.value }))}>
-          <option value="">Todos</option>
-          {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-        </select>
-
-        <Button size="sm" variant="secondary" onClick={clearFilters}>Limpiar</Button>
-      </div>
-
-      {/* Capas de infraestructura */}
-      <div style={{
-        background:'#fff', borderRadius:'var(--radius)', boxShadow:'var(--shadow)',
-        padding:'0.6rem 1rem', display:'flex', flexWrap:'wrap', gap:'1rem', alignItems:'center',
-      }}>
-        <span style={{ fontSize:'0.75rem', fontWeight:600, color:'#374151', marginRight:'0.25rem' }}>Mostrar:</span>
-
-        <label style={checkboxStyle}>
-          <input type="checkbox" checked={infraLayers.showPolice} onChange={() => toggleInfraLayer('showPolice')} />
-          <span style={{ width:14, height:14, background:'#003087', borderRadius:3, border:'2px solid white', boxShadow:'0 1px 2px rgba(0,0,0,0.3)', display:'inline-block' }} />
-          Comisarías
-        </label>
-
-        {INFRA_TYPES.map(type => {
-          const cfg = INFRA_CONFIG[type];
-          return (
-            <label key={type} style={checkboxStyle}>
-              <input type="checkbox" checked={infraLayers[type]} onChange={() => toggleInfraLayer(type)} />
-              <span style={{
-                width:16, height:16, background:cfg.bg, borderRadius:4,
-                border:`2px solid ${cfg.border}`, display:'inline-flex',
-                alignItems:'center', justifyContent:'center', fontSize:'9px',
-              }}>
-                {cfg.emoji}
-              </span>
-              {cfg.label}
-            </label>
-          );
-        })}
-      </div>
-
-      {/* Leyenda de tipos de incidente */}
-      <div style={{ display:'flex', gap:'1rem', flexWrap:'wrap', fontSize:'0.75rem', color:'#64748b', alignItems:'center' }}>
-        {incidentTypes.map(t => (
-          <span key={t.id} style={{ display:'flex', alignItems:'center', gap:'0.375rem' }}>
-            <span style={{ width:10, height:10, borderRadius:'50%', background:t.color_hex, border:'1px solid rgba(0,0,0,0.2)', display:'inline-block' }} />
-            {t.name}
+          <span className="map-legend-sizes" style={{ marginLeft:'auto', display:'flex', gap:'0.75rem' }}>
+            <span>● Crítico (grande)</span>
+            <span>● Alto (medio)</span>
+            <span>● Normal (pequeño)</span>
           </span>
-        ))}
-        <span style={{ marginLeft:'auto', display:'flex', gap:'1rem' }}>
-          <span>● Crítico (grande)</span>
-          <span>● Alto (medio)</span>
-          <span>● Normal (pequeño)</span>
-        </span>
-      </div>
+        </div>
 
-      {/* Mapa */}
-      <div style={{ flex:1, borderRadius:'var(--radius)', overflow:'hidden', boxShadow:'var(--shadow)' }}>
-        <MapContainer
-          center={[-38.4161, -63.6167]}
-          zoom={5}
-          style={{ height:'100%', width:'100%' }}
-          zoomControl={false}
-        >
-          <ZoomControl position="topright" />
-          <ScaleControl position="bottomright" imperial={false} />
-          <MapController provinceCode={filters.province_code} partidoLatLng={partidoLatLng} />
+        {/* Mapa */}
+        <div className="map-container-wrap">
+          <MapContainer
+            center={[-38.4161, -63.6167]}
+            zoom={5}
+            style={{ height:'100%', width:'100%' }}
+            zoomControl={false}
+          >
+            <ZoomControl position="topright" />
+            <ScaleControl position="bottomright" imperial={false} />
+            <MapController
+              provinceCode={filters.province_code}
+              partidoLatLng={partidoLatLng}
+              localityLatLng={localityLatLng}
+              localityBoundary={localityBoundary}
+            />
+            <FitBounds points={points} trigger={fitTrigger} />
 
-          <LayersControl position="topright">
-            <BaseLayer checked name="Calles y Rutas (OSM)">
-              <TileLayer
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                maxZoom={19}
+            {/* Límite de localidad */}
+            {localityBoundary && (
+              <GeoJSON
+                key={`boundary-${filters.locality_id}`}
+                data={localityBoundary}
+                style={{ color:'#2563eb', weight:2.5, opacity:0.9, fillColor:'#3b82f6', fillOpacity:0.08 }}
               />
-            </BaseLayer>
-            <BaseLayer name="Mapa Claro (CartoDB)">
-              <TileLayer
-                url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-                attribution='&copy; OpenStreetMap &copy; <a href="https://carto.com/attributions">CARTO</a>'
-                subdomains="abcd"
-                maxZoom={20}
-              />
-            </BaseLayer>
-            <BaseLayer name="Mapa Oscuro (CartoDB)">
-              <TileLayer
-                url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-                attribution='&copy; OpenStreetMap &copy; <a href="https://carto.com/attributions">CARTO</a>'
-                subdomains="abcd"
-                maxZoom={20}
-              />
-            </BaseLayer>
-            <BaseLayer name="Satélite (ESRI)">
-              <TileLayer
-                url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-                attribution='Tiles &copy; Esri'
-                maxZoom={18}
-              />
-            </BaseLayer>
-            <BaseLayer name="Topografía (OpenTopoMap)">
-              <TileLayer
-                url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
-                attribution='&copy; OpenStreetMap contributors, SRTM | &copy; OpenTopoMap'
-                maxZoom={17}
-              />
-            </BaseLayer>
-          </LayersControl>
+            )}
 
-          {/* Marcadores de incidentes — agrupados con leaflet.markercluster nativo */}
-          <ClusterLayer points={points} incidentTypes={incidentTypes} />
+            <LayersControl position="topright">
+              <BaseLayer checked name="Calles y Rutas (OSM)">
+                <TileLayer
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                  maxZoom={19}
+                />
+              </BaseLayer>
+              <BaseLayer name="Mapa Claro (CartoDB)">
+                <TileLayer
+                  url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+                  attribution='&copy; OpenStreetMap &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                  subdomains="abcd"
+                  maxZoom={20}
+                />
+              </BaseLayer>
+              <BaseLayer name="Mapa Oscuro (CartoDB)">
+                <TileLayer
+                  url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                  attribution='&copy; OpenStreetMap &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                  subdomains="abcd"
+                  maxZoom={20}
+                />
+              </BaseLayer>
+              <BaseLayer name="Satélite (ESRI)">
+                <TileLayer
+                  url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                  attribution='Tiles &copy; Esri'
+                  maxZoom={18}
+                />
+              </BaseLayer>
+              <BaseLayer name="Topografía (OpenTopoMap)">
+                <TileLayer
+                  url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
+                  attribution='&copy; OpenStreetMap contributors, SRTM | &copy; OpenTopoMap'
+                  maxZoom={17}
+                />
+              </BaseLayer>
+            </LayersControl>
 
-          {/* Comisarías */}
-          {infraLayers.showPolice && stations
-            .filter(s => s.latitude && s.longitude)
-            .map(s => (
-              <Marker
-                key={`ps-${s.id}`}
-                position={[Number(s.latitude), Number(s.longitude)]}
-                icon={makePoliceIcon()}
-              >
-                <Popup>
-                  <div>
-                    <div style={{ fontWeight:700, fontSize:'0.8125rem', marginBottom:'0.25rem' }}>🚔 {s.name}</div>
-                    {s.address    && <div style={{ fontSize:'0.75rem', color:'#64748b' }}>{s.address}</div>}
-                    {s.phone      && <div style={{ fontSize:'0.75rem', color:'#64748b', marginTop:'0.25rem' }}>☎ {s.phone}</div>}
-                    {s.partido_name && <div style={{ fontSize:'0.75rem', color:'#94a3b8', marginTop:'0.25rem' }}>{s.partido_name}</div>}
-                  </div>
-                </Popup>
-              </Marker>
-            ))
-          }
+            <ClusterLayer points={points} incidentTypes={incidentTypes} />
 
-          {/* Infraestructura */}
-          {infrastructure
-            .filter(pt => pt.latitude && pt.longitude && infraLayers[pt.type])
-            .map(pt => {
-              const cfg = INFRA_CONFIG[pt.type] || INFRA_CONFIG.OTRO;
-              return (
+            {/* Comisarías */}
+            {infraLayers.showPolice && stations
+              .filter(s => s.latitude && s.longitude)
+              .map(s => (
                 <Marker
-                  key={`infra-${pt.id}`}
-                  position={[Number(pt.latitude), Number(pt.longitude)]}
-                  icon={makeInfraIcon(pt.type)}
+                  key={`ps-${s.id}`}
+                  position={[Number(s.latitude), Number(s.longitude)]}
+                  icon={makePoliceIcon()}
                 >
-                  <Popup minWidth={200}>
+                  <Popup>
                     <div>
-                      <div style={{ fontWeight:700, fontSize:'0.8125rem', marginBottom:'0.25rem' }}>
-                        {cfg.emoji} {pt.name}
-                      </div>
-                      <div style={{
-                        display:'inline-block', fontSize:'0.7rem', padding:'0.1rem 0.4rem',
-                        background:cfg.bg, color:'white', borderRadius:4, marginBottom:'0.35rem',
-                      }}>
-                        {cfg.label}
-                      </div>
-                      {pt.address     && <div style={{ fontSize:'0.75rem', color:'#64748b' }}>{pt.address}</div>}
-                      {pt.phone       && <div style={{ fontSize:'0.75rem', color:'#64748b', marginTop:'0.25rem' }}>☎ {pt.phone}</div>}
-                      {pt.level       && <div style={{ fontSize:'0.75rem', color:'#64748b', marginTop:'0.25rem' }}>Nivel: {pt.level}</div>}
-                      {pt.beds        && <div style={{ fontSize:'0.75rem', color:'#64748b' }}>Camas: {pt.beds}</div>}
-                      {pt.partido_name && <div style={{ fontSize:'0.75rem', color:'#94a3b8', marginTop:'0.25rem' }}>{pt.partido_name}</div>}
+                      <div style={{ fontWeight:700, fontSize:'0.8125rem', marginBottom:'0.25rem' }}>🚔 {s.name}</div>
+                      {s.address     && <div style={{ fontSize:'0.75rem', color:'#64748b' }}>{s.address}</div>}
+                      {s.phone       && <div style={{ fontSize:'0.75rem', color:'#64748b', marginTop:'0.25rem' }}>☎ {s.phone}</div>}
+                      {s.partido_name && <div style={{ fontSize:'0.75rem', color:'#94a3b8', marginTop:'0.25rem' }}>{s.partido_name}</div>}
                     </div>
                   </Popup>
                 </Marker>
-              );
-            })
-          }
+              ))
+            }
 
-        </MapContainer>
+            {/* Infraestructura */}
+            {infrastructure
+              .filter(pt => pt.latitude && pt.longitude && infraLayers[pt.type])
+              .map(pt => {
+                const cfg = INFRA_CONFIG[pt.type] || INFRA_CONFIG.OTRO;
+                return (
+                  <Marker
+                    key={`infra-${pt.id}`}
+                    position={[Number(pt.latitude), Number(pt.longitude)]}
+                    icon={makeInfraIcon(pt.type)}
+                  >
+                    <Popup minWidth={200}>
+                      <div>
+                        <div style={{ fontWeight:700, fontSize:'0.8125rem', marginBottom:'0.25rem' }}>
+                          {cfg.emoji} {pt.name}
+                        </div>
+                        <div style={{
+                          display:'inline-block', fontSize:'0.7rem', padding:'0.1rem 0.4rem',
+                          background:cfg.bg, color:'white', borderRadius:4, marginBottom:'0.35rem',
+                        }}>
+                          {cfg.label}
+                        </div>
+                        {pt.address     && <div style={{ fontSize:'0.75rem', color:'#64748b' }}>{pt.address}</div>}
+                        {pt.phone       && <div style={{ fontSize:'0.75rem', color:'#64748b', marginTop:'0.25rem' }}>☎ {pt.phone}</div>}
+                        {pt.level       && <div style={{ fontSize:'0.75rem', color:'#64748b', marginTop:'0.25rem' }}>Nivel: {pt.level}</div>}
+                        {pt.beds        && <div style={{ fontSize:'0.75rem', color:'#64748b' }}>Camas: {pt.beds}</div>}
+                        {pt.partido_name && <div style={{ fontSize:'0.75rem', color:'#94a3b8', marginTop:'0.25rem' }}>{pt.partido_name}</div>}
+                      </div>
+                    </Popup>
+                  </Marker>
+                );
+              })
+            }
+
+          </MapContainer>
+        </div>
+
       </div>
-
-    </div>
+    </>
   );
 }

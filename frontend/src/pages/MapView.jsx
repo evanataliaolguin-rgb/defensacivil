@@ -234,23 +234,12 @@ const INFRA_TYPES = Object.keys(INFRA_CONFIG);
 // ─── Estilos responsive ────────────────────────────────────────────────────────
 
 const RESPONSIVE_CSS = `
-  .map-page { display:flex; flex-direction:column; min-height:calc(100vh - 56px - 3rem); gap:0.75rem; }
-  .map-container-wrap { flex:1; min-height:480px; border-radius:var(--radius); overflow:hidden; box-shadow:var(--shadow); }
-  .map-filters { background:#fff; border-radius:var(--radius); box-shadow:var(--shadow); padding:0.75rem 1rem; display:flex; flex-wrap:wrap; gap:0.6rem; align-items:center; }
-  .map-infra { background:#fff; border-radius:var(--radius); box-shadow:var(--shadow); padding:0.6rem 1rem; display:flex; flex-wrap:wrap; gap:0.75rem; align-items:center; }
-  .map-legend { display:flex; gap:0.75rem; flex-wrap:wrap; font-size:0.75rem; color:#64748b; align-items:center; }
-  .map-header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.5rem; }
   .map-sel { padding:0.4rem 0.6rem; border:1px solid #d1d5db; border-radius:var(--radius); font-size:0.8rem; background:#fff; min-width:120px; max-width:100%; }
   .map-sel:disabled { opacity:0.5; }
   .map-checkbox-label { display:flex; align-items:center; gap:0.3rem; font-size:0.75rem; cursor:pointer; white-space:nowrap; }
   @media (max-width: 768px) {
-    .map-page { min-height:unset; }
-    .map-container-wrap { min-height:55vh; }
-    .map-filters { padding:0.5rem 0.75rem; gap:0.4rem; }
-    .map-infra { padding:0.4rem 0.75rem; gap:0.5rem; }
-    .map-legend { gap:0.5rem; font-size:0.7rem; }
-    .map-sel { min-width:100px; font-size:0.75rem; }
-    .map-legend .map-legend-sizes { display:none; }
+    .map-sel { min-width:90px; font-size:0.75rem; }
+    .map-legend-sizes { display:none !important; }
   }
 `;
 
@@ -415,10 +404,10 @@ export default function MapView() {
   return (
     <>
       <style>{RESPONSIVE_CSS}</style>
-      <div className="map-page">
+      <div style={{ display:'flex', flexDirection:'column', height:'calc(100vh - 56px - 3rem)', gap:'0.75rem' }}>
 
         {/* Header */}
-        <div className="map-header">
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:'0.5rem' }}>
           <h1 style={{ fontSize:'1.5rem', fontWeight:700 }}>Mapa de Incidentes</h1>
           <div style={{ display:'flex', gap:'0.5rem', alignItems:'center' }}>
             {loading && <span style={{ fontSize:'0.8rem', color:'#94a3b8' }}>⟳ Actualizando...</span>}
@@ -430,7 +419,7 @@ export default function MapView() {
         </div>
 
         {/* Filtros principales */}
-        <div className="map-filters">
+        <div style={{ background:'#fff', borderRadius:'var(--radius)', boxShadow:'var(--shadow)', padding:'0.75rem 1rem', display:'flex', flexWrap:'wrap', gap:'0.6rem', alignItems:'center' }}>
           <label style={{ fontSize:'0.8rem', fontWeight:500, color:'#374151' }}>Provincia:</label>
           <select className="map-sel" value={filters.province_id} onChange={handleProvinceChange}>
             <option value="" data-code="">Toda Argentina</option>
@@ -480,7 +469,7 @@ export default function MapView() {
         </div>
 
         {/* Capas de infraestructura */}
-        <div className="map-infra">
+        <div style={{ background:'#fff', borderRadius:'var(--radius)', boxShadow:'var(--shadow)', padding:'0.6rem 1rem', display:'flex', flexWrap:'wrap', gap:'0.75rem', alignItems:'center' }}>
           <span style={{ fontSize:'0.75rem', fontWeight:600, color:'#374151' }}>Mostrar:</span>
 
           <label className="map-checkbox-label">
@@ -508,14 +497,14 @@ export default function MapView() {
         </div>
 
         {/* Leyenda */}
-        <div className="map-legend">
+        <div style={{ display:'flex', gap:'0.75rem', flexWrap:'wrap', fontSize:'0.75rem', color:'#64748b', alignItems:'center' }}>
           {incidentTypes.map(t => (
             <span key={t.id} style={{ display:'flex', alignItems:'center', gap:'0.3rem' }}>
               <span style={{ width:10, height:10, borderRadius:'50%', background:t.color_hex, border:'1px solid rgba(0,0,0,0.2)', display:'inline-block' }} />
               {t.name}
             </span>
           ))}
-          <span className="map-legend-sizes" style={{ marginLeft:'auto', display:'flex', gap:'0.75rem' }}>
+          <span className="map-legend-sizes" style={{ marginLeft:'auto', display:'flex', gap:'0.75rem', flexShrink:0 }}>
             <span>● Crítico (grande)</span>
             <span>● Alto (medio)</span>
             <span>● Normal (pequeño)</span>
@@ -523,7 +512,7 @@ export default function MapView() {
         </div>
 
         {/* Mapa */}
-        <div className="map-container-wrap">
+        <div style={{ flex:1, minHeight:'350px', borderRadius:'var(--radius)', overflow:'hidden', boxShadow:'var(--shadow)' }}>
           <MapContainer
             center={[-38.4161, -63.6167]}
             zoom={5}

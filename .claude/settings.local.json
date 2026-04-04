@@ -3,7 +3,8 @@
     "allow": [
       "Bash(xargs grep:*)",
       "Bash(npm run:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(find C:Usersfox12Desktopdefensacivil.claudeworktreesloving-lumiere -type f \\\\\\(-name *map* -o -name *Map* \\\\\\))"
     ]
   }
 }

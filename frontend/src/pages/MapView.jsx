@@ -283,6 +283,7 @@ export default function MapView() {
   const [settingPoint, setSettingPoint] = useState(null); // 'origin' | 'dest' | null
   const [routeResult,  setRouteResult]  = useState(null); // {distance, duration, geojson, steps}
   const [routeLoading, setRouteLoading] = useState(false);
+  const [routeError,   setRouteError]   = useState(false);
   const [stepsOpen,    setStepsOpen]    = useState(false);
 
   const [filters, setFilters] = useState({
@@ -315,8 +316,9 @@ export default function MapView() {
 
   // Calcular ruta con OSRM cuando ambos waypoints están listos
   useEffect(() => {
-    if (!routeOrigin || !routeDest) { setRouteResult(null); return; }
+    if (!routeOrigin || !routeDest) { setRouteResult(null); setRouteError(false); return; }
     setRouteLoading(true);
+    setRouteError(false);
     const url = `https://router.project-osrm.org/route/v1/driving/${routeOrigin.lng},${routeOrigin.lat};${routeDest.lng},${routeDest.lat}?overview=full&geometries=geojson&steps=true`;
     fetch(url)
       .then(r => r.json())
@@ -329,17 +331,19 @@ export default function MapView() {
             geojson:  route.geometry,
             steps:    route.legs?.[0]?.steps || [],
           });
+          setRouteError(false);
         } else {
           setRouteResult(null);
+          setRouteError(true);
         }
       })
-      .catch(() => setRouteResult(null))
+      .catch(() => { setRouteResult(null); setRouteError(true); })
       .finally(() => setRouteLoading(false));
   }, [routeOrigin, routeDest]);
 
   const clearRoute = () => {
     setRouteOrigin(null); setRouteDest(null);
-    setRouteResult(null); setSettingPoint(null); setStepsOpen(false);
+    setRouteResult(null); setRouteError(false); setSettingPoint(null); setStepsOpen(false);
   };
 
   const handleGeolocation = (target) => {
@@ -631,6 +635,7 @@ export default function MapView() {
               position:'absolute', top:10, left:10, zIndex:1000,
               background:'#fff', borderRadius:'var(--radius)', boxShadow:'0 4px 20px rgba(0,0,0,0.2)',
               width:300, padding:'0.875rem', fontSize:'0.8125rem',
+              maxHeight:'calc(100% - 20px)', overflowY:'auto',
             }}>
               <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'0.75rem' }}>
                 <span style={{ fontWeight:700, fontSize:'0.875rem', color:'#1e293b' }}>🧭 Calcular Ruta</span>
@@ -681,6 +686,11 @@ export default function MapView() {
 
               {/* Resultado */}
               {routeLoading && <div style={{ textAlign:'center', color:'#64748b', padding:'0.5rem' }}>⟳ Calculando ruta...</div>}
+              {routeError && !routeLoading && (
+                <div style={{ background:'#fee2e2', color:'#dc2626', borderRadius:'var(--radius)', padding:'0.5rem 0.6rem', fontSize:'0.75rem', marginTop:'0.25rem' }}>
+                  ❌ No se pudo calcular la ruta. El servidor OSRM puede estar temporalmente no disponible o los puntos no tienen ruta terrestre.
+                </div>
+              )}
               {routeResult && !routeLoading && (
                 <div style={{ borderTop:'1px solid #e2e8f0', paddingTop:'0.6rem' }}>
                   <div style={{ display:'flex', gap:'1rem', marginBottom:'0.5rem' }}>

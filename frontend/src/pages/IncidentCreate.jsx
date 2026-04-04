@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { incidentsApi } from '../api/incidents.api';
 import IncidentForm from '../components/incidents/IncidentForm';
 import Button from '../components/common/Button';
@@ -29,14 +30,17 @@ export default function IncidentCreate() {
     setError(null);
     try {
       const { data: incident } = await incidentsApi.create(data);
+      toast.success('Incidente creado correctamente');
       navigate(`/incidents/${incident.uuid}`);
     } catch (err) {
       const errData = err.response?.data;
       if (errData?.errors?.length) {
-        const detail = errData.errors.map(e => `${e.field}: ${e.message}`).join(' · ');
-        setError(detail);
+        errData.errors.forEach(e => toast.error(`${e.field}: ${e.message}`));
+        setError(errData.errors.map(e => `${e.field}: ${e.message}`).join(' · '));
       } else {
-        setError(errData?.error || 'Error al crear el incidente');
+        const msg = errData?.error || 'Error al crear el incidente';
+        toast.error(msg);
+        setError(msg);
       }
       setLoading(false);
     }

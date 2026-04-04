@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
 import { usersApi } from '../api/users.api';
 import { RoleBadge } from '../components/common/Badge';
 import Button from '../components/common/Button';
@@ -28,15 +29,15 @@ export default function UserEdit() {
 
   const onSubmit = async (data) => {
     setLoading(true); setError(null);
-    try { await usersApi.update(uuid, data); navigate('/usuarios'); }
-    catch (err) { setError(err.response?.data?.error || 'Error'); setLoading(false); }
+    try { await usersApi.update(uuid, data); toast.success('Usuario actualizado correctamente'); navigate('/usuarios'); }
+    catch (err) { const msg = err.response?.data?.error || 'Error'; toast.error(msg); setError(msg); setLoading(false); }
   };
 
   const handlePwReset = async () => {
     if (!newPw || newPw.length < 8) { setPwError('Mínimo 8 caracteres'); return; }
     setPwError(null);
-    try { await usersApi.resetPassword(uuid, { newPassword: newPw }); setPwOk(true); setNewPw(''); }
-    catch (err) { setPwError(err.response?.data?.error || 'Error'); }
+    try { await usersApi.resetPassword(uuid, { newPassword: newPw }); toast.success('Contraseña restablecida'); setPwOk(true); setNewPw(''); }
+    catch (err) { const msg = err.response?.data?.error || 'Error'; toast.error(msg); setPwError(msg); }
   };
 
   if (!user) return <p style={{ color:'#64748b' }}>Cargando...</p>;

@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
@@ -96,7 +97,10 @@ function StatusModal({ incident, onClose, onSaved }) {
     setSaving(true);
     try {
       await incidentsApi.updateStatus(incident.uuid, { status, notes });
+      toast.success(`Estado actualizado a ${status}`);
       onSaved();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Error al actualizar estado');
     } finally {
       setSaving(false);
     }

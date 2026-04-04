@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
 import { usersApi } from '../api/users.api';
 import Button from '../components/common/Button';
 
@@ -23,8 +24,8 @@ export default function UserCreate() {
   const onSubmit = async (data) => {
     setLoading(true);
     setError(null);
-    try { await usersApi.create(data); navigate('/usuarios'); }
-    catch (err) { setError(err.response?.data?.error || 'Error al crear usuario'); setLoading(false); }
+    try { await usersApi.create(data); toast.success('Usuario creado correctamente'); navigate('/usuarios'); }
+    catch (err) { const msg = err.response?.data?.error || 'Error al crear usuario'; toast.error(msg); setError(msg); setLoading(false); }
   };
 
   return (

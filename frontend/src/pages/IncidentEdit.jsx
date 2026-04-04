@@ -36,7 +36,8 @@ export default function IncidentEdit() {
       await incidentsApi.update(uuid, data);
       navigate(`/incidents/${uuid}`);
     } catch (err) {
-      setError(err.response?.data?.error || 'Error al actualizar');
+      const errData = err.response?.data;
+      setError(errData?.errors?.map(e => `${e.field}: ${e.message}`).join(' · ') || errData?.error || 'Error al actualizar');
       setLoading(false);
     }
   };

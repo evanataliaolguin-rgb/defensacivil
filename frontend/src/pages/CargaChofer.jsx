@@ -107,10 +107,11 @@ export default function CargaChofer() {
   const [activeIncs,   setActiveIncs]   = useState([]);
   const [loadingPts,   setLoadingPts]   = useState(true);
 
-  const [selectedInc,  setSelectedInc]  = useState(null);
-  const [newLoc,       setNewLoc]       = useState(null);
-  const [comment,      setComment]      = useState('');
-  const [newStatus,    setNewStatus]    = useState('');
+  const [selectedInc,   setSelectedInc]   = useState(null);
+  const [newLoc,        setNewLoc]        = useState(null);
+  const [comment,       setComment]       = useState('');
+  const [newStatus,     setNewStatus]     = useState('');
+  const [newSubtypeId,  setNewSubtypeId]  = useState('');
   const [loading,      setLoading]      = useState(false);
   const [error,        setError]        = useState('');
   const [success,      setSuccess]      = useState('');
@@ -145,6 +146,7 @@ export default function CargaChofer() {
     setNewLoc(null);
     setComment('');
     setNewStatus(inc?.status || '');
+    setNewSubtypeId(inc?.incident_subtype_id ? String(inc.incident_subtype_id) : '');
     setSuccess('');
     setError('');
     if (inc?.latitude && inc?.longitude) {
@@ -177,10 +179,11 @@ export default function CargaChofer() {
     setSuccess('');
     try {
       await incidentsApi.addNote(selectedInc.uuid, {
-        latitude:  newLoc ? newLoc.lat   : undefined,
-        longitude: newLoc ? newLoc.lng   : undefined,
-        notes:     comment || undefined,
-        status:    newStatus !== selectedInc.status ? newStatus : undefined,
+        latitude:            newLoc ? newLoc.lat : undefined,
+        longitude:           newLoc ? newLoc.lng : undefined,
+        notes:               comment || undefined,
+        status:              newStatus !== selectedInc.status ? newStatus : undefined,
+        incident_subtype_id: newSubtypeId ? Number(newSubtypeId) : undefined,
       });
       setSuccess(`Incidente ${selectedInc.incident_number} actualizado correctamente`);
       setComment('');
@@ -321,6 +324,28 @@ export default function CargaChofer() {
                   </div>
                 )}
               </div>
+
+              {/* Subtipo */}
+              {(() => {
+                const tipo = incidentTypes.find(t => String(t.id) === String(selectedInc.incident_type_id));
+                const subtypes = tipo?.subtypes || [];
+                if (!subtypes.length) return null;
+                return (
+                  <div style={fld}>
+                    <label style={lbl}>Subtipo de Incidente</label>
+                    <select
+                      style={sel}
+                      value={newSubtypeId}
+                      onChange={e => setNewSubtypeId(e.target.value)}
+                    >
+                      <option value="">Sin subtipo</option>
+                      {subtypes.map(s => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                );
+              })()}
 
               {/* Estado */}
               <div style={fld}>

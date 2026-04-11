@@ -118,7 +118,7 @@ async function findMapPoints(filters = {}) {
   );
 }
 
-async function addNote(uuid, userId, { latitude, longitude, notes, status } = {}) {
+async function addNote(uuid, userId, { latitude, longitude, notes, status, incident_subtype_id, assigned_officer } = {}) {
   const incident = await queryOne('SELECT * FROM incidents WHERE uuid = ? AND is_deleted = 0', [uuid]);
   if (!incident) return null;
 
@@ -128,6 +128,8 @@ async function addNote(uuid, userId, { latitude, longitude, notes, status } = {}
 
   if (latitude  != null) { updateParts.push('latitude = ?');  updateVals.push(latitude); }
   if (longitude != null) { updateParts.push('longitude = ?'); updateVals.push(longitude); }
+  if (incident_subtype_id != null) { updateParts.push('incident_subtype_id = ?'); updateVals.push(incident_subtype_id || null); }
+  if (assigned_officer !== undefined && assigned_officer !== null) { updateParts.push('assigned_officer = ?'); updateVals.push(assigned_officer); }
 
   if (status && status !== incident.status) {
     updateParts.push('status = ?');

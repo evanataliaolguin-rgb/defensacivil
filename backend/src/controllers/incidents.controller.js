@@ -43,10 +43,12 @@ async function mapPoints(req, res, next) {
 async function addNote(req, res, next) {
   try {
     const incident = await incidentModel.addNote(req.params.uuid, req.user.id, {
-      latitude:  req.body.latitude  != null ? Number(req.body.latitude)  : null,
-      longitude: req.body.longitude != null ? Number(req.body.longitude) : null,
-      notes:     req.body.notes,
-      status:    req.body.status,
+      latitude:            req.body.latitude  != null ? Number(req.body.latitude)  : null,
+      longitude:           req.body.longitude != null ? Number(req.body.longitude) : null,
+      notes:               req.body.notes,
+      status:              req.body.status,
+      incident_subtype_id: req.body.incident_subtype_id != null ? Number(req.body.incident_subtype_id) : null,
+      assigned_officer:    req.body.assigned_officer,
     });
     if (!incident) return res.status(404).json({ error: 'Incidente no encontrado' });
     res.json(incident);

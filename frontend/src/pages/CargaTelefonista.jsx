@@ -7,6 +7,7 @@ import {
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { incidentsApi } from '../api/incidents.api';
+import { usersApi } from '../api/users.api';
 import useGeoStore from '../store/geoStore';
 import Button from '../components/common/Button';
 
@@ -72,14 +73,16 @@ export default function CargaTelefonista() {
   const [loadingPts,   setLoadingPts]   = useState(true);
 
   const [loc,          setLoc]          = useState(null);
-  const [form,         setForm]         = useState({ incident_type_id:'', description:'', priority:'ALTA', address:'' });
+  const [form,         setForm]         = useState({ incident_type_id:'', description:'', priority:'ALTA', address:'', chofer:'' });
   const [loading,      setLoading]      = useState(false);
   const [error,        setError]        = useState('');
   const [created,      setCreated]      = useState(null);
+  const [choferes,     setChoferes]     = useState([]);
 
   useEffect(() => {
     fetchIncidentTypes();
     loadPoints();
+    usersApi.getChoferes().then(r => setChoferes(r.data)).catch(() => {});
   }, []);
 
   async function loadPoints() {
@@ -125,11 +128,12 @@ export default function CargaTelefonista() {
         priority:         form.priority,
         ...(loc ? { latitude: loc.lat, longitude: loc.lng } : {}),
         address:          form.address || undefined,
+        assigned_officer: form.chofer   || undefined,
         status:           'RECIBIDO',
       });
       setCreated(res.data);
       setLoc(null);
-      setForm({ incident_type_id:'', description:'', priority:'ALTA', address:'' });
+      setForm({ incident_type_id:'', description:'', priority:'ALTA', address:'', chofer:'' });
       await loadPoints();
     } catch (e) {
       setError(e.response?.data?.error || 'Error al registrar el incidente');
@@ -229,7 +233,7 @@ export default function CargaTelefonista() {
                 >
                   <option value="">Seleccionar tipo...</option>
                   {incidentTypes.map(t => (
-                    <option key={t.id} value={t.id}>{t.icon} {t.name}</option>
+                    <option key={t.id} value={t.id}>{t.name}</option>
                   ))}
                 </select>
               </div>
@@ -262,6 +266,23 @@ export default function CargaTelefonista() {
                     onChange={e => setForm(f => ({ ...f, address: e.target.value }))}
                   />
                 </div>
+              </div>
+
+              {/* Chofer asignado */}
+              <div style={fld}>
+                <label style={lbl}>Chofer / Unidad Asignada</label>
+                <select
+                  style={sel}
+                  value={form.chofer}
+                  onChange={e => setForm(f => ({ ...f, chofer: e.target.value }))}
+                >
+                  <option value="">— Sin asignar —</option>
+                  {choferes.map(c => (
+                    <option key={c.uuid} value={c.full_name || c.username}>
+                      {c.full_name || c.username}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {error && (

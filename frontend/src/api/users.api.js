@@ -2,6 +2,7 @@ import api from './axios';
 
 export const usersApi = {
   getAll:       ()             => api.get('/users'),
+  getChoferes:  ()             => api.get('/users/choferes'),
   getOne:       (uuid)         => api.get(`/users/${uuid}`),
   create:       (data)         => api.post('/users', data),
   update:       (uuid, data)   => api.put(`/users/${uuid}`, data),

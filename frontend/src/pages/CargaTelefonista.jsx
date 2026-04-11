@@ -88,9 +88,26 @@ export default function CargaTelefonista() {
     finally { setLoadingPts(false); }
   }
 
-  const handleMapClick = useCallback((latlng) => {
+  const handleMapClick = useCallback(async (latlng) => {
     setLoc(latlng);
     setError('');
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latlng.lat}&lon=${latlng.lng}&addressdetails=1`,
+        { headers: { 'Accept-Language': 'es' } }
+      );
+      const data = await res.json();
+      if (data?.display_name) {
+        const a = data.address || {};
+        const parts = [
+          a.road,
+          a.house_number,
+          a.suburb || a.neighbourhood || a.city_district,
+          a.city || a.town || a.village || a.municipality,
+        ].filter(Boolean);
+        setForm(f => ({ ...f, address: parts.length ? parts.join(', ') : data.display_name }));
+      }
+    } catch { /* si falla el geocoding no bloqueamos */ }
   }, []);
 
   async function handleSubmit() {

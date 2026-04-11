@@ -35,7 +35,10 @@ const config = Object.freeze({
     refreshExpires: process.env.JWT_REFRESH_EXPIRES || '7d',
   },
   cors: {
-    origin: process.env.CORS_ORIGIN || 'http://localhost:4070',
+    // Soporta múltiples orígenes separados por coma, o '*' para todos
+    origin: process.env.CORS_ORIGIN
+      ? process.env.CORS_ORIGIN.split(',').map(s => s.trim())
+      : true, // true = reflejar cualquier origen (seguro detrás de auth JWT)
   },
   rateLimit: {
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10),

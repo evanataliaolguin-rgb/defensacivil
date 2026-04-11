@@ -67,7 +67,8 @@ async function toggleActive(req, res, next) {
 async function listOperadores(req, res, next) {
   try {
     const users = await userModel.findAll();
-    res.json(users.filter(u => u.role === 'operador' && u.is_active));
+    const ASIGNABLES = ['operador', 'chofer', 'medium', 'admin'];
+    res.json(users.filter(u => ASIGNABLES.includes(u.role) && u.is_active));
   } catch (err) { next(err); }
 }
 

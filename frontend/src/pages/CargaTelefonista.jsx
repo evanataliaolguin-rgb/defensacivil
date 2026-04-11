@@ -89,14 +89,14 @@ export default function CargaTelefonista() {
     // Intentar endpoint dedicado primero
     try {
       const r = await usersApi.getOperadores();
-      const list = (r.data || []).filter(u => u.role === 'operador' || u.role === 'chofer');
-      if (list.length > 0) { setOperadores(list); return; }
+      if ((r.data || []).length > 0) { setOperadores(r.data); return; }
     } catch (_) {}
     // Fallback: getAll y filtrar (requiere admin)
     try {
       const r = await usersApi.getAll();
+      const ASIGNABLES = ['operador', 'chofer', 'medium', 'admin'];
       const list = (r.data || []).filter(u =>
-        (u.role === 'operador' || u.role === 'chofer') && u.is_active !== 0
+        ASIGNABLES.includes(u.role) && u.is_active !== 0
       );
       setOperadores(list);
     } catch (_) {}

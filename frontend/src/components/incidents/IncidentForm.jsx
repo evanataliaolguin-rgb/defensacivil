@@ -25,13 +25,13 @@ export default function IncidentForm({ defaultValues, onSubmit, isLoading, showS
     async function load() {
       try {
         const r = await usersApi.getOperadores();
-        const list = (r.data || []).filter(u => u.role === 'operador' || u.role === 'chofer');
-        if (list.length > 0) { setOperadores(list); return; }
+        if ((r.data || []).length > 0) { setOperadores(r.data); return; }
       } catch (_) {}
       try {
         const r = await usersApi.getAll();
+        const ASIGNABLES = ['operador', 'chofer', 'medium', 'admin'];
         setOperadores((r.data || []).filter(u =>
-          (u.role === 'operador' || u.role === 'chofer') && u.is_active !== 0
+          ASIGNABLES.includes(u.role) && u.is_active !== 0
         ));
       } catch (_) {}
     }

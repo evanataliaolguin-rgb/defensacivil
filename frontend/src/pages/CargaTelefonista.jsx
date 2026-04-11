@@ -82,15 +82,25 @@ export default function CargaTelefonista() {
   useEffect(() => {
     fetchIncidentTypes();
     loadPoints();
-    usersApi.getOperadores()
-      .then(r => setOperadores(r.data))
-      .catch(() => {
-        // Fallback: traer todos los usuarios y filtrar operadores
-        usersApi.getAll()
-          .then(r => setOperadores((r.data || []).filter(u => u.role === 'operador' && u.is_active)))
-          .catch(() => {});
-      });
+    loadOperadores();
   }, []);
+
+  async function loadOperadores() {
+    // Intentar endpoint dedicado primero
+    try {
+      const r = await usersApi.getOperadores();
+      const list = (r.data || []).filter(u => u.role === 'operador' || u.role === 'chofer');
+      if (list.length > 0) { setOperadores(list); return; }
+    } catch (_) {}
+    // Fallback: getAll y filtrar (requiere admin)
+    try {
+      const r = await usersApi.getAll();
+      const list = (r.data || []).filter(u =>
+        (u.role === 'operador' || u.role === 'chofer') && u.is_active !== 0
+      );
+      setOperadores(list);
+    } catch (_) {}
+  }
 
   async function loadPoints() {
     setLoadingPts(true);

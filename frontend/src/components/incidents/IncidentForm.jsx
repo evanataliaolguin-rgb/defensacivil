@@ -22,13 +22,20 @@ export default function IncidentForm({ defaultValues, onSubmit, isLoading, showS
   const [operadores, setOperadores] = useState([]);
 
   useEffect(() => {
-    usersApi.getOperadores()
-      .then(r => setOperadores(r.data))
-      .catch(() => {
-        usersApi.getAll()
-          .then(r => setOperadores((r.data || []).filter(u => u.role === 'operador' && u.is_active)))
-          .catch(() => {});
-      });
+    async function load() {
+      try {
+        const r = await usersApi.getOperadores();
+        const list = (r.data || []).filter(u => u.role === 'operador' || u.role === 'chofer');
+        if (list.length > 0) { setOperadores(list); return; }
+      } catch (_) {}
+      try {
+        const r = await usersApi.getAll();
+        setOperadores((r.data || []).filter(u =>
+          (u.role === 'operador' || u.role === 'chofer') && u.is_active !== 0
+        ));
+      } catch (_) {}
+    }
+    load();
   }, []);
 
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm({ defaultValues });

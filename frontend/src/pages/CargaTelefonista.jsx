@@ -4,11 +4,8 @@ import {
   MapContainer, TileLayer, Marker, Popup,
   ZoomControl, ScaleControl, useMapEvents,
 } from 'react-leaflet';
-import MarkerClusterGroup from 'react-leaflet-markercluster';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import 'leaflet.markercluster/dist/MarkerCluster.css';
-import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import { incidentsApi } from '../api/incidents.api';
 import useGeoStore from '../store/geoStore';
 import Button from '../components/common/Button';
@@ -315,23 +312,21 @@ export default function CargaTelefonista() {
             <MapClickHandler onMapClick={handleMapClick} />
 
             {/* Incidentes existentes */}
-            <MarkerClusterGroup chunkedLoading maxClusterRadius={50} showCoverageOnHover={false}>
-              {mapPoints.map(p => (
-                <Marker
-                  key={p.uuid}
-                  position={[Number(p.latitude), Number(p.longitude)]}
-                  icon={makeIncidentIcon(p.color_hex, p.priority)}
-                >
-                  <Popup minWidth={190}>
-                    <div>
-                      <div style={{ fontWeight:700, fontSize:'0.8rem' }}>{p.incident_number}</div>
-                      <div style={{ fontSize:'0.78rem', color:'#475569', margin:'0.2rem 0' }}>{p.title}</div>
-                      <div style={{ fontSize:'0.74rem', color:'#64748b' }}>{p.type_name} · {STATUS_LABEL[p.status] || p.status}</div>
-                    </div>
-                  </Popup>
-                </Marker>
-              ))}
-            </MarkerClusterGroup>
+            {mapPoints.map(p => (
+              <Marker
+                key={p.uuid}
+                position={[Number(p.latitude), Number(p.longitude)]}
+                icon={makeIncidentIcon(p.color_hex, p.priority)}
+              >
+                <Popup minWidth={190}>
+                  <div>
+                    <div style={{ fontWeight:700, fontSize:'0.8rem' }}>{p.incident_number}</div>
+                    <div style={{ fontSize:'0.78rem', color:'#475569', margin:'0.2rem 0' }}>{p.title}</div>
+                    <div style={{ fontSize:'0.74rem', color:'#64748b' }}>{p.type_name} · {STATUS_LABEL[p.status] || p.status}</div>
+                  </div>
+                </Popup>
+              </Marker>
+            ))}
 
             {/* Marcador de ubicación aproximada */}
             {loc && (

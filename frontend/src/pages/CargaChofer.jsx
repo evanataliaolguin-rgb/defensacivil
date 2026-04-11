@@ -4,11 +4,8 @@ import {
   MapContainer, TileLayer, Marker, Popup,
   ZoomControl, ScaleControl, useMapEvents, useMap,
 } from 'react-leaflet';
-import MarkerClusterGroup from 'react-leaflet-markercluster';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import 'leaflet.markercluster/dist/MarkerCluster.css';
-import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import { incidentsApi } from '../api/incidents.api';
 import useGeoStore from '../store/geoStore';
 import { StatusBadge, PriorityBadge } from '../components/common/Badge';
@@ -435,35 +432,33 @@ export default function CargaChofer() {
             <MapFlyTo target={flyTarget} />
 
             {/* Todos los incidentes */}
-            <MarkerClusterGroup chunkedLoading maxClusterRadius={50} showCoverageOnHover={false}>
-              {mapPoints
-                .filter(p => !selectedInc || p.uuid !== selectedInc.uuid)
-                .map(p => (
-                  <Marker
-                    key={p.uuid}
-                    position={[Number(p.latitude), Number(p.longitude)]}
-                    icon={makeIncidentIcon(p.color_hex, p.priority)}
-                  >
-                    <Popup minWidth={200}>
-                      <div>
-                        <div style={{ fontWeight:700, fontSize:'0.8rem' }}>{p.incident_number}</div>
-                        <div style={{ fontSize:'0.78rem', color:'#475569', margin:'0.2rem 0' }}>{p.title}</div>
-                        <div style={{ fontSize:'0.74rem', color:'#64748b' }}>{p.type_name} · {STATUS_LABELS[p.status] || p.status}</div>
-                        <button
-                          onClick={() => {
-                            const inc = activeIncs.find(i => i.uuid === p.uuid);
-                            if (inc) selectIncident(inc);
-                          }}
-                          style={{ marginTop:'0.35rem', fontSize:'0.78rem', color:'#1d4ed8', background:'none', border:'none', cursor:'pointer', padding:0 }}
-                        >
-                          Seleccionar este incidente →
-                        </button>
-                      </div>
-                    </Popup>
-                  </Marker>
-                ))
-              }
-            </MarkerClusterGroup>
+            {mapPoints
+              .filter(p => !selectedInc || p.uuid !== selectedInc.uuid)
+              .map(p => (
+                <Marker
+                  key={p.uuid}
+                  position={[Number(p.latitude), Number(p.longitude)]}
+                  icon={makeIncidentIcon(p.color_hex, p.priority)}
+                >
+                  <Popup minWidth={200}>
+                    <div>
+                      <div style={{ fontWeight:700, fontSize:'0.8rem' }}>{p.incident_number}</div>
+                      <div style={{ fontSize:'0.78rem', color:'#475569', margin:'0.2rem 0' }}>{p.title}</div>
+                      <div style={{ fontSize:'0.74rem', color:'#64748b' }}>{p.type_name} · {STATUS_LABELS[p.status] || p.status}</div>
+                      <button
+                        onClick={() => {
+                          const inc = activeIncs.find(i => i.uuid === p.uuid);
+                          if (inc) selectIncident(inc);
+                        }}
+                        style={{ marginTop:'0.35rem', fontSize:'0.78rem', color:'#1d4ed8', background:'none', border:'none', cursor:'pointer', padding:0 }}
+                      >
+                        Seleccionar este incidente →
+                      </button>
+                    </div>
+                  </Popup>
+                </Marker>
+              ))
+            }
 
             {/* Incidente seleccionado: ubicación actual */}
             {selectedInc && selectedInc.latitude && selectedInc.longitude && (

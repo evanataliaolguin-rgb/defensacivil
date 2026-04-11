@@ -5,7 +5,7 @@ import {
   LayersControl, ScaleControl, ZoomControl,
   useMap,
 } from 'react-leaflet';
-import MarkerClusterGroup from '@changey/react-leaflet-markercluster';
+import MarkerClusterGroup from 'react-leaflet-markercluster';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
@@ -207,9 +207,8 @@ export default function MapView() {
     setFilters(f => ({ ...f, locality_id: '' }));
   }, [filters.partido_id]);
 
-  // Incidentes y comisarías
+  // Incidentes y comisarías — carga inicial + auto-refresh cada 30s
   useEffect(() => {
-    setLoading(true);
     const params = {};
     if (filters.incident_type_id) params.incident_type_id = filters.incident_type_id;
     if (filters.status)           params.status           = filters.status;
@@ -217,13 +216,20 @@ export default function MapView() {
     if (filters.partido_id)       params.partido_id       = filters.partido_id;
     if (filters.locality_id)      params.locality_id      = filters.locality_id;
 
-    Promise.all([
-      incidentsApi.getMapPoints(params),
-      geoApi.getPoliceStations(filters.province_id || undefined),
-    ]).then(([pts, sts]) => {
-      setPoints(pts.data);
-      setStations(sts.data);
-    }).finally(() => setLoading(false));
+    function load(showSpinner) {
+      if (showSpinner) setLoading(true);
+      Promise.all([
+        incidentsApi.getMapPoints(params),
+        geoApi.getPoliceStations(filters.province_id || undefined),
+      ]).then(([pts, sts]) => {
+        setPoints(pts.data);
+        setStations(sts.data);
+      }).finally(() => setLoading(false));
+    }
+
+    load(true);
+    const interval = setInterval(() => load(false), 30000);
+    return () => clearInterval(interval);
   }, [filters.province_id, filters.partido_id, filters.locality_id, filters.incident_type_id, filters.status]);
 
   const handleProvinceChange = (e) => {

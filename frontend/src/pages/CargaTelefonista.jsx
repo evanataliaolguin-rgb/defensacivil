@@ -111,9 +111,8 @@ export default function CargaTelefonista() {
   }, []);
 
   async function handleSubmit() {
-    if (!form.incident_type_id) { setError('Seleccione el tipo de incidente'); return; }
-    if (!form.description.trim()) { setError('Ingrese una descripción'); return; }
-    if (!loc)                     { setError('Haga click en el mapa para marcar la ubicación'); return; }
+    if (!form.incident_type_id)    { setError('Seleccione el tipo de incidente'); return; }
+    if (!form.description.trim())  { setError('Ingrese una descripción'); return; }
 
     setLoading(true);
     setError('');
@@ -124,8 +123,7 @@ export default function CargaTelefonista() {
         title:            `${typeName} — Telefonista`,
         description:      form.description,
         priority:         form.priority,
-        latitude:         loc.lat,
-        longitude:        loc.lng,
+        ...(loc ? { latitude: loc.lat, longitude: loc.lng } : {}),
         address:          form.address || undefined,
         status:           'RECIBIDO',
       });
@@ -173,9 +171,10 @@ export default function CargaTelefonista() {
           {/* Instrucciones */}
           <div style={{ ...card, padding:'0.875rem 1rem', background:'#fffbeb', border:'1px solid #fde68a' }}>
             <div style={{ fontSize:'0.8rem', color:'#92400e', lineHeight:1.6 }}>
-              <strong>① </strong>Haga click en el mapa para marcar la ubicación aproximada<br/>
-              <strong>② </strong>Complete el tipo y descripción del incidente<br/>
-              <strong>③ </strong>Presione <strong>Registrar</strong> para crear el incidente
+              <strong>① </strong>Complete el tipo, descripción y prioridad del incidente<br/>
+              <strong>② </strong>Ingrese la dirección que le da el llamante<br/>
+              <strong>③ </strong>Opcionalmente puede marcar una ubicación aproximada en el mapa<br/>
+              <strong>④ </strong>La ubicación exacta la cargará el chofer al llegar al lugar
             </div>
           </div>
 
@@ -215,8 +214,8 @@ export default function CargaTelefonista() {
                   >✕</button>
                 </div>
               ) : (
-                <div style={{ padding:'0.625rem 0.75rem', background:'#fff7ed', border:'1px dashed #fb923c', borderRadius:'var(--radius)', fontSize:'0.8rem', color:'#c2410c', textAlign:'center', marginBottom:'0.85rem' }}>
-                  ← Haga click en el mapa para marcar la ubicación
+                <div style={{ padding:'0.625rem 0.75rem', background:'#f8fafc', border:'1px dashed #cbd5e1', borderRadius:'var(--radius)', fontSize:'0.8rem', color:'#64748b', textAlign:'center', marginBottom:'0.85rem' }}>
+                  Ubicación aproximada opcional — haga click en el mapa
                 </div>
               )}
 
@@ -305,12 +304,12 @@ export default function CargaTelefonista() {
         <div style={{ flex:1, borderRadius:'var(--radius)', overflow:'hidden', boxShadow:'var(--shadow)', position:'relative', minHeight:0 }}>
           <div style={{
             position:'absolute', top:12, left:12, zIndex:1000,
-            background: loc ? 'rgba(16,163,74,0.9)' : 'rgba(249,115,22,0.92)',
+            background: loc ? 'rgba(16,163,74,0.9)' : 'rgba(100,116,139,0.85)',
             color:'#fff', padding:'0.35rem 0.85rem',
             borderRadius:'var(--radius)', fontSize:'0.75rem', fontWeight:600,
             pointerEvents:'none',
           }}>
-            {loc ? '✓ Ubicación marcada — puede ajustarla haciendo click de nuevo' : 'Click en el mapa → marcar ubicación aproximada'}
+            {loc ? '✓ Ubicación aproximada marcada (opcional)' : 'Opcional: click para marcar ubicación aproximada — el chofer confirmará la ubicación real'}
           </div>
 
           <MapContainer

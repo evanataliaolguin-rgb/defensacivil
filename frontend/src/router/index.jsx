@@ -9,6 +9,8 @@ import IncidentDetail    from '../pages/IncidentDetail';
 import IncidentCreate    from '../pages/IncidentCreate';
 import IncidentEdit      from '../pages/IncidentEdit';
 import MapView           from '../pages/MapView';
+import InundadosView     from '../pages/InundadosView';
+import InfrastructureView from '../pages/InfrastructureView';
 import UserList          from '../pages/UserList';
 import UserCreate        from '../pages/UserCreate';
 import UserEdit          from '../pages/UserEdit';
@@ -49,7 +51,9 @@ export default function AppRouter() {
         <Route path="dashboard"  element={<Dashboard />} />
         <Route path="incidents"  element={<IncidentList />} />
         <Route path="incidents/:uuid" element={<IncidentDetail />} />
-        <Route path="mapa"       element={<MapView />} />
+        <Route path="mapa"            element={<MapView />} />
+        <Route path="inundados"       element={<InundadosView />} />
+        <Route path="infraestructura" element={<InfrastructureView />} />
 
         {/* Escritura: admin, medium, telefonista, operador */}
         <Route path="incidents/new"

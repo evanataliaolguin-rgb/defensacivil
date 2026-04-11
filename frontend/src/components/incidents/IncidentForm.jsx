@@ -22,7 +22,13 @@ export default function IncidentForm({ defaultValues, onSubmit, isLoading, showS
   const [operadores, setOperadores] = useState([]);
 
   useEffect(() => {
-    usersApi.getOperadores().then(r => setOperadores(r.data)).catch(() => {});
+    usersApi.getOperadores()
+      .then(r => setOperadores(r.data))
+      .catch(() => {
+        usersApi.getAll()
+          .then(r => setOperadores((r.data || []).filter(u => u.role === 'operador' && u.is_active)))
+          .catch(() => {});
+      });
   }, []);
 
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm({ defaultValues });

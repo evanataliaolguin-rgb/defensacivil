@@ -82,7 +82,14 @@ export default function CargaTelefonista() {
   useEffect(() => {
     fetchIncidentTypes();
     loadPoints();
-    usersApi.getOperadores().then(r => setOperadores(r.data)).catch(() => {});
+    usersApi.getOperadores()
+      .then(r => setOperadores(r.data))
+      .catch(() => {
+        // Fallback: traer todos los usuarios y filtrar operadores
+        usersApi.getAll()
+          .then(r => setOperadores((r.data || []).filter(u => u.role === 'operador' && u.is_active)))
+          .catch(() => {});
+      });
   }, []);
 
   async function loadPoints() {

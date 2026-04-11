@@ -1,12 +1,17 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
 import { usersApi } from '../api/users.api';
 import { RoleBadge } from '../components/common/Badge';
 import Button from '../components/common/Button';
 
-const ROLES = ['admin','medium','read'];
+const ROLES = [
+  { value:'admin',       label:'Administrador — acceso completo' },
+  { value:'medium',      label:'Operador — crear y editar propios' },
+  { value:'read',        label:'Lector — solo visualización' },
+  { value:'telefonista', label:'Telefonista — carga rápida de llamadas' },
+  { value:'chofer',      label:'Chofer — actualiza ubicación y novedades' },
+];
 const inp = { padding:'0.5rem 0.75rem', border:'1px solid #d1d5db', borderRadius:'var(--radius)', fontSize:'0.875rem', background:'#fff', width:'100%' };
 const fld = { display:'flex', flexDirection:'column', gap:'0.375rem', marginBottom:'1rem' };
 const lbl = { fontSize:'0.875rem', fontWeight:500, color:'#374151' };
@@ -29,15 +34,15 @@ export default function UserEdit() {
 
   const onSubmit = async (data) => {
     setLoading(true); setError(null);
-    try { await usersApi.update(uuid, data); toast.success('Usuario actualizado correctamente'); navigate('/usuarios'); }
-    catch (err) { const msg = err.response?.data?.error || 'Error'; toast.error(msg); setError(msg); setLoading(false); }
+    try { await usersApi.update(uuid, data); navigate('/usuarios'); }
+    catch (err) { setError(err.response?.data?.error || 'Error'); setLoading(false); }
   };
 
   const handlePwReset = async () => {
     if (!newPw || newPw.length < 8) { setPwError('Mínimo 8 caracteres'); return; }
     setPwError(null);
-    try { await usersApi.resetPassword(uuid, { newPassword: newPw }); toast.success('Contraseña restablecida'); setPwOk(true); setNewPw(''); }
-    catch (err) { const msg = err.response?.data?.error || 'Error'; toast.error(msg); setPwError(msg); }
+    try { await usersApi.resetPassword(uuid, { newPassword: newPw }); setPwOk(true); setNewPw(''); }
+    catch (err) { setPwError(err.response?.data?.error || 'Error'); }
   };
 
   if (!user) return <p style={{ color:'#64748b' }}>Cargando...</p>;
@@ -58,7 +63,7 @@ export default function UserEdit() {
           <div style={fld}>
             <label style={lbl}>Rol</label>
             <select style={inp} {...register('role')}>
-              {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+              {ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
             </select>
           </div>
           <div style={{ display:'flex', gap:'0.75rem', justifyContent:'flex-end' }}>

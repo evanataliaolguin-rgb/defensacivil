@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
 import { usersApi } from '../api/users.api';
 import Button from '../components/common/Button';
 
 const ROLES = [
-  { value:'admin',  label:'Administrador — acceso completo' },
-  { value:'medium', label:'Operador — crear y editar propios' },
-  { value:'read',   label:'Lector — solo visualización' },
+  { value:'admin',       label:'Administrador — acceso completo' },
+  { value:'medium',      label:'Operador — crear y editar propios' },
+  { value:'read',        label:'Lector — solo visualización' },
+  { value:'telefonista', label:'Telefonista — carga rápida de llamadas' },
+  { value:'chofer',      label:'Chofer — actualiza ubicación y novedades' },
 ];
 
 const inp = { padding:'0.5rem 0.75rem', border:'1px solid #d1d5db', borderRadius:'var(--radius)', fontSize:'0.875rem', background:'#fff', width:'100%' };
@@ -24,8 +25,8 @@ export default function UserCreate() {
   const onSubmit = async (data) => {
     setLoading(true);
     setError(null);
-    try { await usersApi.create(data); toast.success('Usuario creado correctamente'); navigate('/usuarios'); }
-    catch (err) { const msg = err.response?.data?.error || 'Error al crear usuario'; toast.error(msg); setError(msg); setLoading(false); }
+    try { await usersApi.create(data); navigate('/usuarios'); }
+    catch (err) { setError(err.response?.data?.error || 'Error al crear usuario'); setLoading(false); }
   };
 
   return (

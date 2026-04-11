@@ -2,14 +2,16 @@ import { NavLink } from 'react-router-dom';
 import useAuthStore from '../../store/authStore';
 
 const LINKS = [
-  { to:'/dashboard',  label:'Dashboard',        icon:'📊', roles:['admin','medium','read'] },
-  { to:'/incidents',  label:'Incidentes',        icon:'🚨', roles:['admin','medium','read'] },
-  { to:'/incidents/new', label:'Nuevo Incidente',icon:'➕', roles:['admin','medium'] },
-  { to:'/mapa',       label:'Mapa',              icon:'🗺️', roles:['admin','medium','read'] },
-  { to:'/inundados',       label:'Inundados',        icon:'🌊', roles:['admin','medium','read'] },
+  { to:'/dashboard',     label:'Dashboard',          icon:'📊', roles:['admin','medium','read','telefonista','chofer'] },
+  { to:'/incidents',     label:'Incidentes',          icon:'🚨', roles:['admin','medium','read','telefonista','chofer'] },
+  { to:'/incidents/new', label:'Nuevo Incidente',     icon:'➕', roles:['admin','medium','telefonista'] },
+  { to:'/mapa',          label:'Mapa',                icon:'🗺️', roles:['admin','medium','read','telefonista','chofer'] },
+  { to:'/inundados',     label:'Inundados',           icon:'🌊', roles:['admin','medium','read'] },
   { to:'/infraestructura', label:'Infraestructura',   icon:'🏥', roles:['admin','medium','read'] },
-  { to:'/usuarios',   label:'Usuarios',          icon:'👥', roles:['admin'] },
-  { to:'/auditoria',  label:'Auditoría',         icon:'📋', roles:['admin'] },
+  { to:'/telefonista',   label:'Central Telefonista', icon:'📞', roles:['admin','telefonista'] },
+  { to:'/chofer',        label:'Panel Chofer',        icon:'🚗', roles:['admin','chofer'] },
+  { to:'/usuarios',      label:'Usuarios',            icon:'👥', roles:['admin'] },
+  { to:'/auditoria',     label:'Auditoría',           icon:'📋', roles:['admin'] },
 ];
 
 export default function Sidebar({ isOpen }) {

@@ -9,14 +9,12 @@ import IncidentDetail    from '../pages/IncidentDetail';
 import IncidentCreate    from '../pages/IncidentCreate';
 import IncidentEdit      from '../pages/IncidentEdit';
 import MapView           from '../pages/MapView';
-import InundadosView     from '../pages/InundadosView';
-import InfrastructureView from '../pages/InfrastructureView';
 import UserList          from '../pages/UserList';
 import UserCreate        from '../pages/UserCreate';
 import UserEdit          from '../pages/UserEdit';
 import AuditLog          from '../pages/AuditLog';
 import CargaTelefonista  from '../pages/CargaTelefonista';
-import CargaChofer       from '../pages/CargaChofer';
+import CargaOperador       from '../pages/CargaOperador';
 import NotFound          from '../pages/NotFound';
 import LoadingScreen     from '../components/common/LoadingScreen';
 
@@ -52,10 +50,8 @@ export default function AppRouter() {
         <Route path="incidents"  element={<IncidentList />} />
         <Route path="incidents/:uuid" element={<IncidentDetail />} />
         <Route path="mapa"       element={<MapView />} />
-        <Route path="inundados"  element={<InundadosView />} />
-        <Route path="infraestructura" element={<InfrastructureView />} />
 
-        {/* Escritura: admin, medium, telefonista */}
+        {/* Escritura: admin, medium, telefonista, operador */}
         <Route path="incidents/new"
           element={
             <ProtectedRoute requiredRoles={['admin','medium','telefonista']}>
@@ -63,10 +59,9 @@ export default function AppRouter() {
             </ProtectedRoute>
           }
         />
-        {/* Edición: admin, medium, telefonista, chofer */}
         <Route path="incidents/:uuid/edit"
           element={
-            <ProtectedRoute requiredRoles={['admin','medium','telefonista','chofer']}>
+            <ProtectedRoute requiredRoles={['admin','medium','telefonista','operador']}>
               <IncidentEdit />
             </ProtectedRoute>
           }
@@ -81,11 +76,11 @@ export default function AppRouter() {
           }
         />
 
-        {/* Chofer */}
-        <Route path="chofer"
+        {/* Operador */}
+        <Route path="operador"
           element={
-            <ProtectedRoute requiredRoles={['admin','chofer']}>
-              <CargaChofer />
+            <ProtectedRoute requiredRoles={['admin','operador']}>
+              <CargaOperador />
             </ProtectedRoute>
           }
         />

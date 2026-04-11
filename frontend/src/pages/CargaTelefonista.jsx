@@ -73,16 +73,16 @@ export default function CargaTelefonista() {
   const [loadingPts,   setLoadingPts]   = useState(true);
 
   const [loc,          setLoc]          = useState(null);
-  const [form,         setForm]         = useState({ incident_type_id:'', description:'', priority:'ALTA', address:'', chofer:'' });
+  const [form,         setForm]         = useState({ incident_type_id:'', description:'', priority:'ALTA', address:'', operador:'' });
   const [loading,      setLoading]      = useState(false);
   const [error,        setError]        = useState('');
   const [created,      setCreated]      = useState(null);
-  const [choferes,     setChoferes]     = useState([]);
+  const [operadores,     setOperadores]     = useState([]);
 
   useEffect(() => {
     fetchIncidentTypes();
     loadPoints();
-    usersApi.getChoferes().then(r => setChoferes(r.data)).catch(() => {});
+    usersApi.getOperadores().then(r => setOperadores(r.data)).catch(() => {});
   }, []);
 
   async function loadPoints() {
@@ -128,12 +128,12 @@ export default function CargaTelefonista() {
         priority:         form.priority,
         ...(loc ? { latitude: loc.lat, longitude: loc.lng } : {}),
         address:          form.address || undefined,
-        assigned_officer: form.chofer   || undefined,
+        assigned_officer: form.operador   || undefined,
         status:           'RECIBIDO',
       });
       setCreated(res.data);
       setLoc(null);
-      setForm({ incident_type_id:'', description:'', priority:'ALTA', address:'', chofer:'' });
+      setForm({ incident_type_id:'', description:'', priority:'ALTA', address:'', operador:'' });
       await loadPoints();
     } catch (e) {
       setError(e.response?.data?.error || 'Error al registrar el incidente');
@@ -178,7 +178,7 @@ export default function CargaTelefonista() {
               <strong>① </strong>Complete el tipo, descripción y prioridad del incidente<br/>
               <strong>② </strong>Ingrese la dirección que le da el llamante<br/>
               <strong>③ </strong>Opcionalmente puede marcar una ubicación aproximada en el mapa<br/>
-              <strong>④ </strong>La ubicación exacta la cargará el chofer al llegar al lugar
+              <strong>④ </strong>La ubicación exacta la cargará el operador al llegar al lugar
             </div>
           </div>
 
@@ -268,16 +268,16 @@ export default function CargaTelefonista() {
                 </div>
               </div>
 
-              {/* Chofer asignado */}
+              {/* Operador asignado */}
               <div style={fld}>
-                <label style={lbl}>Chofer / Unidad Asignada</label>
+                <label style={lbl}>Operador / Unidad Asignada</label>
                 <select
                   style={sel}
-                  value={form.chofer}
-                  onChange={e => setForm(f => ({ ...f, chofer: e.target.value }))}
+                  value={form.operador}
+                  onChange={e => setForm(f => ({ ...f, operador: e.target.value }))}
                 >
                   <option value="">— Sin asignar —</option>
-                  {choferes.map(c => (
+                  {operadores.map(c => (
                     <option key={c.uuid} value={c.full_name || c.username}>
                       {c.full_name || c.username}
                     </option>
@@ -330,7 +330,7 @@ export default function CargaTelefonista() {
             borderRadius:'var(--radius)', fontSize:'0.75rem', fontWeight:600,
             pointerEvents:'none',
           }}>
-            {loc ? '✓ Ubicación aproximada marcada (opcional)' : 'Opcional: click para marcar ubicación aproximada — el chofer confirmará la ubicación real'}
+            {loc ? '✓ Ubicación aproximada marcada (opcional)' : 'Opcional: click para marcar ubicación aproximada — el operador confirmará la ubicación real'}
           </div>
 
           <MapContainer

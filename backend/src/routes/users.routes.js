@@ -9,7 +9,7 @@ const { createUserRules, updateUserRules, resetPasswordRules } = require('../val
 const auth   = authenticateToken;
 const admins = authorize('admin');
 
-router.get('/choferes',           auth, ctrl.listChoferes);
+router.get('/operadores',         auth, ctrl.listOperadores);
 router.get('/',                   auth, admins, ctrl.list);
 router.get('/:uuid',              auth, admins, ctrl.getOne);
 router.post('/',                  auth, admins, validate(createUserRules), createAuditLog('CREATE_USER','users'), ctrl.create);

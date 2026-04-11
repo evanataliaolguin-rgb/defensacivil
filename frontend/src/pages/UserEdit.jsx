@@ -10,7 +10,7 @@ const ROLES = [
   { value:'medium',      label:'Operador — crear y editar propios' },
   { value:'read',        label:'Lector — solo visualización' },
   { value:'telefonista', label:'Telefonista — carga rápida de llamadas' },
-  { value:'chofer',      label:'Chofer — actualiza ubicación y novedades' },
+  { value:'operador',      label:'Operador — actualiza ubicación y novedades' },
 ];
 const inp = { padding:'0.5rem 0.75rem', border:'1px solid #d1d5db', borderRadius:'var(--radius)', fontSize:'0.875rem', background:'#fff', width:'100%' };
 const fld = { display:'flex', flexDirection:'column', gap:'0.375rem', marginBottom:'1rem' };

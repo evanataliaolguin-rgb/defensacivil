@@ -64,11 +64,11 @@ async function toggleActive(req, res, next) {
   } catch (err) { next(err); }
 }
 
-async function listChoferes(req, res, next) {
+async function listOperadores(req, res, next) {
   try {
     const users = await userModel.findAll();
-    res.json(users.filter(u => u.role === 'chofer' && u.is_active));
+    res.json(users.filter(u => u.role === 'operador' && u.is_active));
   } catch (err) { next(err); }
 }
 
-module.exports = { list, getOne, create, update, resetPassword, toggleActive, listChoferes };
+module.exports = { list, getOne, create, update, resetPassword, toggleActive, listOperadores };

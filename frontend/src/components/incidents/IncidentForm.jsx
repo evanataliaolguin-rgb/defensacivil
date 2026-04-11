@@ -19,10 +19,10 @@ const sel = { ...input, cursor:'pointer' };
 export default function IncidentForm({ defaultValues, onSubmit, isLoading, showStatus = false }) {
   const { incidentTypes, provinces, partidos, localities, fetchPartidos, fetchLocalities } = useGeoStore();
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [choferes, setChoferes] = useState([]);
+  const [operadores, setOperadores] = useState([]);
 
   useEffect(() => {
-    usersApi.getChoferes().then(r => setChoferes(r.data)).catch(() => {});
+    usersApi.getOperadores().then(r => setOperadores(r.data)).catch(() => {});
   }, []);
 
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm({ defaultValues });
@@ -162,10 +162,10 @@ export default function IncidentForm({ defaultValues, onSubmit, isLoading, showS
           </div>
 
           <div style={{ ...field, gridColumn:'1/-1' }}>
-            <label style={label}>Chofer / Unidad Asignada</label>
+            <label style={label}>Operador / Unidad Asignada</label>
             <select style={sel} {...register('assigned_officer')}>
               <option value="">— Sin asignar —</option>
-              {choferes.map(c => (
+              {operadores.map(c => (
                 <option key={c.uuid} value={c.full_name || c.username}>
                   {c.full_name || c.username}
                 </option>

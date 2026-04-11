@@ -10,8 +10,8 @@ const {
 } = require('../validators/incident.validator');
 
 const auth    = authenticateToken;
-const all     = authorize('admin', 'medium', 'read', 'telefonista', 'chofer');
-const writers = authorize('admin', 'medium', 'telefonista', 'chofer');
+const all     = authorize('admin', 'medium', 'read', 'telefonista', 'operador');
+const writers = authorize('admin', 'medium', 'telefonista', 'operador');
 const admins  = authorize('admin');
 
 router.get('/',          auth, all,     ctrl.list);

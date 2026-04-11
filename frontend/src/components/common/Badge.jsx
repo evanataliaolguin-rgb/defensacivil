@@ -19,7 +19,7 @@ const ROLE_COLORS = {
   medium:      { bg:'#dbeafe', text:'#1d4ed8', label:'Operador' },
   read:        { bg:'#f1f5f9', text:'#64748b', label:'Lector' },
   telefonista: { bg:'#fef3c7', text:'#d97706', label:'Telefonista' },
-  chofer:      { bg:'#dcfce7', text:'#16a34a', label:'Chofer' },
+  operador:      { bg:'#dcfce7', text:'#16a34a', label:'Operador' },
 };
 
 export function StatusBadge({ status }) {
